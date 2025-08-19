@@ -1,0 +1,36 @@
+{
+   "name": "dumpline",
+   "displayName": "dumpline",
+   "description": "Dump selected text to image.",
+   "icon": "negi-only.png",
+   "type": "module",
+   "version": "0.0.1",
+   "publisher": "barroit",
+   "license": "GPL-3.0-or-later",
+   "main": "dumpline.js",
+   "activationEvents": [],
+   "engines": {
+      "vscode": "^1.74.0"
+   },
+   "repository": {
+      "type": "git",
+      "url": "git@github.com:barroit/dumpline.git"
+   },
+   "files": [
+      "dumpline.js",
+      "LICENSES/GPL-3.0-or-later",
+      "negi-only.png"
+   ],
+   "contributes": {
+      "commands": [
+         {
+            "command": "dumpline.exec",
+            "title": "Dump line",
+            "enablement": "editorHasSelection"
+         }
+      ]
+   },
+   "devDependencies": {
+      "@vscode/vsce": "^3.6.0"
+   }
+}
