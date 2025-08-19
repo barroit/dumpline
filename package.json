@@ -28,7 +28,16 @@
             "title": "Dump line",
             "enablement": "editorHasSelection"
          }
-      ]
+      ],
+      "menus": {
+         "editor/context": [
+            {
+               "command": "dumpline.exec",
+               "group": "dumpline",
+               "when": "editorHasSelection"
+            }
+         ]
+      }
    },
    "devDependencies": {
       "@vscode/vsce": "^3.6.0"
