@@ -1,0 +1,25 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/*
+ * Copyright 2025 Jiamu Sun <barroit@linux.com>
+ */
+
+html, body, main, #buffer {
+	height: 100%;
+}
+
+html {
+	overflow: hidden;
+	user-select: none;
+}
+
+body {
+	padding-right: 8px;
+}
+
+#canvas {
+	overflow: auto;
+}
+
+#canvas div {
+	width: min-content;
+}

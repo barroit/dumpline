@@ -7,8 +7,11 @@ import { Uri } from 'vscode'
 
 export default function layout(webview, root)
 {
-	const render_js = Uri.file(`${ root }/render.js`)
-	const render = webview.asWebviewUri(render_js)
+	const script = Uri.file(`${ root }/render.js`)
+	const script_uri = webview.asWebviewUri(script)
+
+	const style = Uri.file(`${ root }/layout.css`)
+	const style_uri = webview.asWebviewUri(style)
 
 return `
 <!DOCTYPE html>
@@ -17,14 +20,8 @@ return `
 <head>
   <meta charset='utf-8'>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <link rel='stylesheet' href='${ style_uri }'>
   <title>Dump</title>
-  <style>
-    html, body, main, #buffer { height: 100% }
-    body { padding-right: 8px }
-    html { overflow: hidden }
-    #canvas { overflow: auto }
-    #canvas div { width: min-content }
-  </style>
 </head>
 
 <body>
@@ -35,7 +32,7 @@ return `
     </svg>
     <canvas id='buffer'></canvas>
   </main>
-  <script src='${ render }'></script>
+  <script src='${ script_uri }'></script>
 </body>
 
 </html>
