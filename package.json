@@ -7,7 +7,7 @@
    "version": "0.0.1",
    "publisher": "barroit",
    "license": "GPL-3.0-or-later",
-   "main": "dumpline.js",
+   "main": "core/dumpline.js",
    "activationEvents": [],
    "engines": {
       "vscode": "^1.74.0"
@@ -17,7 +17,7 @@
       "url": "git@github.com:barroit/dumpline.git"
    },
    "files": [
-      "dumpline.js",
+      "core/*",
       "LICENSES/GPL-3.0-or-later",
       "negi-only.png"
    ],
