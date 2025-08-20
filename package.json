@@ -26,7 +26,7 @@
          {
             "command": "dumpline.exec",
             "title": "Dump line",
-            "enablement": "editorHasSelection"
+            "enablement": "editorHasSelection && !editorHasMultipleSelections"
          }
       ],
       "menus": {
@@ -34,7 +34,7 @@
             {
                "command": "dumpline.exec",
                "group": "dumpline",
-               "when": "editorHasSelection"
+               "when": "editorHasSelection && !editorHasMultipleSelections"
             }
          ]
       }

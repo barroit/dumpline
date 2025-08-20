@@ -17,14 +17,24 @@ return `
 <head>
   <meta charset='utf-8'>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
-  <script src='${ render }'></script>
   <title>Dump</title>
+  <style>
+    html, body, main, #buffer { height: 100% }
+    body { padding-right: 8px }
+    html { overflow: hidden }
+    #canvas-box > foreignObject { overflow: auto }
+  </style>
 </head>
 
 <body>
   <main>
-    <h1>111</h1>
+    <svg xmlns='http://www.w3.org/2000/svg'
+	 id='canvas-box' width='100%' height='100%'>
+      <foreignObject width='100%' height='100%'></foreignObject>
+    </svg>
+    <canvas id='buffer'></canvas>
   </main>
+  <script src='${ render }'></script>
 </body>
 
 </html>

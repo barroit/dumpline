@@ -6,7 +6,9 @@
 import { commands, window, ViewColumn, Uri } from 'vscode'
 import layout from './layout.js'
 
-const { registerTextEditorCommand } = commands
+const { executeCommand, registerTextEditorCommand } = commands
+
+const cp = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
 
 let ctx
 let panel
@@ -37,15 +39,20 @@ function panel_init()
 
 async function dumpline()
 {
+	const editor = window.activeTextEditor
+
 	if (panel)
 		panel.reveal(panel.viewColumn, true)
 	else
 		panel = panel_init()
+
+	await executeCommand(cp)
+	panel.webview.postMessage(editor.selection)
 }
 
-export function activate(__ctx)
+export function activate(vscode)
 {
-	ctx = __ctx
+	ctx = vscode
 
 	const exec = registerTextEditorCommand('dumpline.exec', dumpline)
 
