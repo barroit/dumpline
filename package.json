@@ -2,7 +2,7 @@
    "name": "dumpline",
    "displayName": "dumpline",
    "description": "Dump selected text to image.",
-   "icon": "negi-only.png",
+   "icon": "assets/negi-only.png",
    "type": "module",
    "version": "0.0.1",
    "publisher": "barroit",
@@ -18,8 +18,8 @@
    },
    "files": [
       "core/*",
-      "LICENSES/GPL-3.0-or-later",
-      "negi-only.png"
+      "LICENSES/*",
+      "assets/*"
    ],
    "contributes": {
       "commands": [
