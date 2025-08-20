@@ -3,16 +3,50 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
-import { commands, window } from 'vscode'
+import { commands, window, ViewColumn, Uri } from 'vscode'
+import layout from './layout.js'
 
 const { registerTextEditorCommand } = commands
 
-async function dumpline()
+let ctx
+let panel
+
+function panel_reset()
 {
+	panel = undefined
 }
 
-export function activate(ctx)
+function panel_init()
 {
+	const dir = `${ ctx.extensionPath }/core`
+	const uri = Uri.joinPath(ctx.extensionUri, 'core')
+
+	const p = window.createWebviewPanel('dumpline', 'Dump', {
+		viewColumn: ViewColumn.Beside,
+		preserveFocus: true,
+	}, {
+		localResourceRoots: [ uri ],
+		enableScripts: true,
+	})
+
+	p.webview.html = layout(p.webview, dir)
+	p.onDidDispose(panel_reset, null, ctx.subscriptions)
+
+	return p
+}
+
+async function dumpline()
+{
+	if (panel)
+		panel.reveal(panel.viewColumn, true)
+	else
+		panel = panel_init()
+}
+
+export function activate(__ctx)
+{
+	ctx = __ctx
+
 	const exec = registerTextEditorCommand('dumpline.exec', dumpline)
 
 	ctx.subscriptions.push(exec)
