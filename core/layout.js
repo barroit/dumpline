@@ -22,7 +22,8 @@ return `
     html, body, main, #buffer { height: 100% }
     body { padding-right: 8px }
     html { overflow: hidden }
-    #canvas-box > foreignObject { overflow: auto }
+    #canvas { overflow: auto }
+    #canvas div { width: min-content }
   </style>
 </head>
 
@@ -30,7 +31,7 @@ return `
   <main>
     <svg xmlns='http://www.w3.org/2000/svg'
 	 id='canvas-box' width='100%' height='100%'>
-      <foreignObject width='100%' height='100%'></foreignObject>
+      <foreignObject id='canvas' width='100%' height='100%'></foreignObject>
     </svg>
     <canvas id='buffer'></canvas>
   </main>
