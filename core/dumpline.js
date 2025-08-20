@@ -3,15 +3,24 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
-import { commands, window, ViewColumn, Uri } from 'vscode'
+import { writeFileSync, mkdirSync, readdirSync } from 'fs'
+import { commands, window, ViewColumn } from 'vscode'
 import layout from './layout.js'
 
 const { executeCommand, registerTextEditorCommand } = commands
 
 const cp = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
 
-let ctx
+let dumpline
 let panel
+let tmpdir
+
+function save_image({ binary })
+{
+	const buf = Buffer.from(binary)
+
+	writeFileSync(`${ tmpdir }/tmp.png`, buf)
+}
 
 function panel_reset()
 {
@@ -20,24 +29,24 @@ function panel_reset()
 
 function panel_init()
 {
-	const dir = `${ ctx.extensionPath }/core`
-	const uri = Uri.joinPath(ctx.extensionUri, 'core')
-
-	const p = window.createWebviewPanel('dumpline', 'Dump', {
+	const page = window.createWebviewPanel('dumpline', 'Dump', {
 		viewColumn: ViewColumn.Beside,
 		preserveFocus: true,
 	}, {
-		localResourceRoots: [ uri ],
 		enableScripts: true,
+		retainContextWhenHidden: true,
 	})
+	const webview = page.webview
 
-	p.webview.html = layout(p.webview, dir)
-	p.onDidDispose(panel_reset, null, ctx.subscriptions)
+	webview.html = layout(webview, `${ dumpline.extensionPath }/core`)
+	webview.onDidReceiveMessage(save_image,
+				    undefined, dumpline.subscriptions)
 
-	return p
+	page.onDidDispose(panel_reset, undefined, dumpline.subscriptions)
+	return page
 }
 
-async function dumpline()
+async function dump_handler()
 {
 	const editor = window.activeTextEditor
 
@@ -50,11 +59,13 @@ async function dumpline()
 	panel.webview.postMessage(editor.selection)
 }
 
-export function activate(vscode)
+export function activate(ctx)
 {
-	ctx = vscode
+	const exec = registerTextEditorCommand('dumpline.exec', dump_handler)
 
-	const exec = registerTextEditorCommand('dumpline.exec', dumpline)
+	dumpline = ctx
+	tmpdir = dumpline.globalStoragePath
 
-	ctx.subscriptions.push(exec)
+	mkdirSync(tmpdir, { recursive: true })
+	dumpline.subscriptions.push(exec)
 }
