@@ -10,7 +10,7 @@ const canvas = document.getElementById('canvas')
 const buffer = document.getElementById('buffer')
 
 let dumpline
-let block
+let ctx
 
 let binary
 let blob
@@ -18,10 +18,10 @@ let blob
 async function image_render(event, done)
 {
 	const img = event.target
-	const ctx = buffer.getContext('2d')
+	const d2 = buffer.getContext('2d')
 
-	ctx.setTransform(scale, 0, 0, scale, 0, 0)
-	ctx.drawImage(img, 0, 0)
+	d2.setTransform(scale, 0, 0, scale, 0, 0)
+	d2.drawImage(img, 0, 0)
 
 	blob = await new Promise(ret => buffer.toBlob(ret))
 	binary = await blob.arrayBuffer()
@@ -53,6 +53,12 @@ function image_init(event)
 
 async function image_save(event)
 {
+	if (!ctx.ready) {
+		dumpline.postMessage({ error: 'command palette required' })
+		return
+	}
+	ctx.ready = 0
+
 	const xml = image_init(event)
 	const fmter = new XMLSerializer()
 	const str = fmter.serializeToString(xml)
@@ -77,6 +83,8 @@ window.addEventListener('message', event =>
 	if (!dumpline)
 		dumpline = acquireVsCodeApi()
 
-	block = event.data
+	ctx = event.data
+	ctx.ready = 1
+
 	document.execCommand('paste')
 })

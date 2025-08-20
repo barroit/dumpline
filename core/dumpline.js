@@ -27,6 +27,14 @@ function panel_reset()
 	panel = undefined
 }
 
+function message_handler(event)
+{
+	if (event.error)
+		window.showErrorMessage(event.error)
+	else
+		save_image(event)
+}
+
 function panel_init()
 {
 	const page = window.createWebviewPanel('dumpline', 'Dump', {
@@ -39,7 +47,7 @@ function panel_init()
 	const webview = page.webview
 
 	webview.html = layout(webview, `${ dumpline.extensionPath }/core`)
-	webview.onDidReceiveMessage(save_image,
+	webview.onDidReceiveMessage(message_handler,
 				    undefined, dumpline.subscriptions)
 
 	page.onDidDispose(panel_reset, undefined, dumpline.subscriptions)
