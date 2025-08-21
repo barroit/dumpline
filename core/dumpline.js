@@ -52,7 +52,7 @@ function panel_init()
 	p.onDidDispose(panel_reset, undefined, dumpline.subscriptions)
 	p.iconPath = Uri.file(`${ root }/assets/negi-only.svg`)
 
-	webview.html = layout(webview, `${ root }/core`)
+	webview.html = layout(webview, root)
 	webview.onDidReceiveMessage(message_handler,
 				    undefined, dumpline.subscriptions)
 

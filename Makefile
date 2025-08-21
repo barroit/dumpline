@@ -1,21 +1,27 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-objtree := build
+srctree := core
 name    := dumpline
-binary  := $(objtree)/$(name).vsix
+binary  := $(name).vsix
 
-.PHONY: bundle install uninstall
+.PHONY: prepare compile install uninstall
 
-bundle:
+compile:
 
-$(objtree):
-	mkdir $(objtree)
+%/:
+	mkdir $@
 
-bundle: $(objtree)
-	npx @vscode/vsce package --skip-license --no-dependencies -o $(binary)
+prepare: build/ build/LICENSES/ build/assets/
+	cp LICENSES/* build/LICENSES
+	cp assets/* build/assets
+	cp .vscodeignore README package.json $(srctree)/* build
 
-install: bundle
-	code --install-extension $(binary)
+compile: prepare
+	cd build && \
+	npx --prefix .. @vscode/vsce package --skip-license -o $(binary)
+
+install: compile
+	cd build && code --install-extension $(binary)
 
 uninstall:
 	code --uninstall-extension \

@@ -7,7 +7,7 @@
    "version": "0.0.1",
    "publisher": "barroit",
    "license": "GPL-3.0-or-later",
-   "main": "core/dumpline.js",
+   "main": "dumpline.js",
    "activationEvents": [],
    "engines": {
       "vscode": "^1.74.0"
@@ -16,11 +16,6 @@
       "type": "git",
       "url": "git@github.com:barroit/dumpline.git"
    },
-   "files": [
-      "core/*",
-      "LICENSES/*",
-      "assets/*"
-   ],
    "contributes": {
       "commands": [
          {
