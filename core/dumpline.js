@@ -4,7 +4,7 @@
  */
 
 import { writeFileSync, mkdirSync, readdirSync } from 'fs'
-import { commands, window, ViewColumn } from 'vscode'
+import { commands, window, ViewColumn, Uri } from 'vscode'
 import layout from './layout.js'
 
 const { executeCommand, registerTextEditorCommand } = commands
@@ -13,6 +13,8 @@ const cp = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
 
 let dumpline
 let panel
+
+let root
 let tmpdir
 
 function save_image({ binary })
@@ -37,21 +39,23 @@ function message_handler(event)
 
 function panel_init()
 {
-	const page = window.createWebviewPanel('dumpline', 'Dump', {
+	const p = window.createWebviewPanel('dumpline', 'Dump', {
 		viewColumn: ViewColumn.Beside,
 		preserveFocus: true,
 	}, {
 		enableScripts: true,
 		retainContextWhenHidden: true,
 	})
-	const webview = page.webview
+	const webview = p.webview
 
-	webview.html = layout(webview, `${ dumpline.extensionPath }/core`)
+	p.onDidDispose(panel_reset, undefined, dumpline.subscriptions)
+	p.iconPath = Uri.file(`${ root }/assets/negi-only.svg`)
+
+	webview.html = layout(webview, `${ root }/core`)
 	webview.onDidReceiveMessage(message_handler,
 				    undefined, dumpline.subscriptions)
 
-	page.onDidDispose(panel_reset, undefined, dumpline.subscriptions)
-	return page
+	return p
 }
 
 async function dump_handler()
@@ -72,6 +76,7 @@ export function activate(ctx)
 	const exec = registerTextEditorCommand('dumpline.exec', dump_handler)
 
 	dumpline = ctx
+	root = dumpline.extensionPath
 	tmpdir = dumpline.globalStoragePath
 
 	mkdirSync(tmpdir, { recursive: true })
