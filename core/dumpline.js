@@ -4,7 +4,7 @@
  */
 
 import { writeFileSync, mkdirSync, readdirSync } from 'fs'
-import { commands, window, ViewColumn, Uri } from 'vscode'
+import { commands, window, workspace, ViewColumn, Uri } from 'vscode'
 import layout from './layout.js'
 
 const { executeCommand, registerTextEditorCommand } = commands
@@ -13,6 +13,7 @@ const cp = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
 
 let dumpline
 let panel
+let config
 
 let root
 let tmpdir
@@ -62,13 +63,18 @@ async function dump_handler()
 {
 	const editor = window.activeTextEditor
 
+	config = workspace.getConfiguration()
+
 	if (panel)
 		panel.reveal(panel.viewColumn, true)
 	else
 		panel = panel_init()
 
 	await executeCommand(cp)
-	panel.webview.postMessage(editor.selection)
+	panel.webview.postMessage({
+		config,
+		block: editor.selection,
+	})
 }
 
 export function activate(ctx)
