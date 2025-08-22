@@ -36,6 +36,8 @@ function message_handler(event)
 {
 	if (event.error)
 		window.showErrorMessage(event.error)
+	else if (event.warn)
+		window.showWarningMessage(event.warn)
 	else
 		save_image(event)
 }

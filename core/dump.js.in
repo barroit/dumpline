@@ -5,6 +5,10 @@
 
 import { cfg_read } from './config.js'
 
+const LINE_HEIGHT = 0
+let LINE_HEIGHT_RATIO
+const LINE_HEIGHT_MIN = 8
+
 const scale = window.devicePixelRatio
 
 const canvas_box = document.getElementById('canvas-box')
@@ -16,16 +20,23 @@ let ctx
 
 let binary
 let blob
+let complete
+
+function error(str)
+{
+	dumpline.postMessage({ error: str })
+}
+
+function warn(str)
+{
+	dumpline.postMessage({ warn: str })
+}
 
 /*
  * No API? Fine. We just went ahead and built the damn thing ourselves.
  *
  * src/vs/editor/common/config/fontInfo.ts:_create()
  */
-const LINE_HEIGHT = 0
-let LINE_HEIGHT_RATIO
-const LINE_HEIGHT_MIN = 8
-
 function line_height_calc(h, scale)
 {
 	if (h == 0)
@@ -35,21 +46,6 @@ function line_height_calc(h, scale)
 
 	h = Math.round(h)
 	return h < LINE_HEIGHT_MIN ? LINE_HEIGHT_MIN : h
-}
-
-async function image_render(event, done)
-{
-	const img = event.target
-	const d2 = buffer.getContext('2d')
-
-	d2.setTransform(scale, 0, 0, scale, 0, 0)
-	d2.drawImage(img, 0, 0)
-
-	blob = await new Promise(ret => buffer.toBlob(ret))
-	if (blob)
-		binary = await blob.arrayBuffer()
-
-	done()
 }
 
 function parse_text(text, styles)
@@ -94,19 +90,37 @@ function parse_text(text, styles)
 	return out
 }
 
-function image_init(event)
+function clipboard_as_html(transfer)
 {
-	const trans = event.clipboardData
-	let data = trans.getData('text/html')
+	const data = transfer.getData('text/html')
 
-	if (!data) {
-		const text = trans.getData('text/plain')
-		const styles = getComputedStyle(canvas)
+	if (data)
+		return data
 
-		data = parse_text(text, styles)
-	}
+	const text = transfer.getData('text/plain')
+	const styles = getComputedStyle(canvas)
 
-	canvas.innerHTML = data
+	return parse_text(text, styles)
+}
+
+async function image_render(event, done)
+{
+	const img = event.target
+	const d2 = buffer.getContext('2d')
+
+	d2.setTransform(scale, 0, 0, scale, 0, 0)
+	d2.drawImage(img, 0, 0)
+
+	blob = await new Promise(ret => buffer.toBlob(ret))
+	if (blob)
+		binary = await blob.arrayBuffer()
+
+	done()
+}
+
+function image_init(html)
+{
+	canvas.innerHTML = html
 
 	const clone = canvas_box.cloneNode(true)
 	const child = canvas.firstChild
@@ -126,12 +140,14 @@ function image_init(event)
 async function image_save(event)
 {
 	if (!ctx.ready) {
-		dumpline.postMessage({ error: 'command palette required' })
+		error('command palette required')
 		return
 	}
 	ctx.ready = 0
 
-	const xml = image_init(event)
+	const html = clipboard_as_html(event.clipboardData)
+	const xml = image_init(html)
+
 	const fmter = new XMLSerializer()
 	const str = fmter.serializeToString(xml)
 
@@ -149,7 +165,34 @@ async function image_save(event)
 		dumpline.postMessage({ binary })
 }
 
+async function image_save_clipboard(event)
+{
+	if (!blob) {
+		warn('nothing to be done')
+		return
+	}
+
+	await new Promise(r => complete = r)
+
+	const data = {
+		[ blob.type ]: blob,
+	}
+	const item = new ClipboardItem(data)
+
+	navigator.clipboard.write([ item ])
+}
+
+document.addEventListener('cut',  image_save_clipboard)
+document.addEventListener('copy', image_save_clipboard)
 document.addEventListener('paste', image_save)
+
+window.addEventListener('focus', () =>
+{
+	if (complete) {
+		complete()
+		complete = undefined
+	}
+})
 
 window.addEventListener('message', event =>
 {
