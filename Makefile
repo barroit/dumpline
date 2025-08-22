@@ -1,28 +1,37 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-srctree := core
-name    := dumpline
-binary  := $(name).vsix
+VPATH := core
 
-.PHONY: prepare compile install uninstall
+pack-y := core/dump.js.in
+core-y := $(filter-out $(pack-y),$(wildcard core/*))
 
-compile:
+pack-y := $(patsubst core/%,build/%,$(pack-y))
+core-y := $(patsubst core/%,build/%,$(core-y))
 
-%/:
-	mkdir $@
+obj-y := .vscodeignore README package.json \
+	 $(wildcard LICENSES/*) $(wildcard assets/*)
 
-prepare: build/ build/LICENSES/ build/assets/
-	cp LICENSES/* build/LICENSES
-	cp assets/* build/assets
-	cp .vscodeignore README package.json $(srctree)/* build
+obj-y := $(patsubst %,build/%,$(obj-y))
+obj-y += $(core-y)
 
-compile: prepare
-	cd build && \
-	npx --prefix .. @vscode/vsce package --skip-license -o $(binary)
+.PHONY: dump.js dumpline.vsix install uninstall
 
-install: compile
-	cd build && code --install-extension $(binary)
+install:
+
+build/%: %
+	@mkdir -p $(dir $@)
+	cp $< $@
+
+dump.js: $(pack-y) $(core-y)
+	head -5 $< >build/$@
+	esbuild --loader:.in=js --bundle $< >>build/$@
+
+dumpline.vsix: dump.js $(obj-y)
+	cd build && npx --prefix .. vsce package --skip-license -o $@
+
+install: dumpline.vsix
+	cd build && code --install-extension $<
 
 uninstall:
 	code --uninstall-extension \
-	     $$(code --list-extensions | grep $(name) || printf '39\n')
+	     $$(code --list-extensions | grep dumpline || printf '39\n')

@@ -35,6 +35,7 @@
       }
    },
    "devDependencies": {
-      "@vscode/vsce": "^3.6.0"
+      "@vscode/vsce": "^3.6.0",
+      "esbuild": "^0.25.9"
    }
 }

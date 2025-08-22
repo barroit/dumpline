@@ -6,5 +6,8 @@
          "license": "GPL-3.0-or-later",
          "year": "2025"
       }
+   },
+   "files.associations": {
+      "dump.js.in": "javascript"
    }
 }
