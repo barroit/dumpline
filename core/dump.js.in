@@ -3,6 +3,8 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
+import { cfg_read } from './config.js'
+
 const scale = window.devicePixelRatio
 
 const canvas_box = document.getElementById('canvas-box')
@@ -14,6 +16,26 @@ let ctx
 
 let binary
 let blob
+
+/*
+ * No API? Fine. We just went ahead and built the damn thing ourselves.
+ *
+ * src/vs/editor/common/config/fontInfo.ts:_create()
+ */
+const LINE_HEIGHT = 0
+let LINE_HEIGHT_RATIO
+const LINE_HEIGHT_MIN = 8
+
+function line_height_calc(h, scale)
+{
+	if (h == 0)
+		h = LINE_HEIGHT_RATIO * scale
+	else if (h < LINE_HEIGHT_MIN)
+		h *= scale
+
+	h = Math.round(h)
+	return h < LINE_HEIGHT_MIN ? LINE_HEIGHT_MIN : h
+}
 
 async function image_render(event, done)
 {
@@ -29,10 +51,59 @@ async function image_render(event, done)
 	done()
 }
 
+function parse_text(text, styles)
+{
+	const fg = styles.getPropertyValue('--vscode-editor-foreground')
+	const bg = styles.getPropertyValue('--vscode-editor-background')
+	const ff = styles.getPropertyValue('--vscode-editor-font-family')
+	const fw = styles.getPropertyValue('--vscode-editor-font-weight')
+	const fs = styles.getPropertyValue('--vscode-editor-font-size')
+	let lh = cfg_read(ctx.config, 'editor', 'lineHeight')
+
+	if (!Number.isInteger(lh))
+		lh = LINE_HEIGHT
+	lh = line_height_calc(lh, parseInt(fs))
+
+	let out = `<div style="color: ${ fg }; ` +
+			      `background-color: ${ bg }; ` +
+			      `font-family: ${ ff }; ` +
+			      `font-weight: ${ fw }; ` +
+			      `font-size: ${ fs }; ` +
+			      `line-height: ${ lh }px; ` +
+			      'white-space: pre">'
+
+	const lines = text.split('\n')
+	const san = document.createElement('div')
+
+	for (const line of lines) {
+		if (line == '') {
+			out +='<br>'
+			continue
+		}
+
+		san.textContent = line
+		out += '<div>' +
+			 `<span style="color: ${ fg }">` +
+			    san.innerHTML +
+			 '</span>' +
+		       '</div>'
+	}
+
+	out += '</div>'
+	return out
+}
+
 function image_init(event)
 {
 	const trans = event.clipboardData
-	const data = trans.getData('text/html')
+	let data = trans.getData('text/html')
+
+	if (!data) {
+		const text = trans.getData('text/plain')
+		const styles = getComputedStyle(canvas)
+
+		data = parse_text(text, styles)
+	}
 
 	canvas.innerHTML = data
 
@@ -86,5 +157,6 @@ window.addEventListener('message', event =>
 	ctx = event.data
 	ctx.ready = 1
 
+	LINE_HEIGHT_RATIO = ctx.platform == 'darwin' ? 1.5 : 1.35
 	document.execCommand('paste')
 })
