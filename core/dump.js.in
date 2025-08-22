@@ -46,7 +46,8 @@ async function image_render(event, done)
 	d2.drawImage(img, 0, 0)
 
 	blob = await new Promise(ret => buffer.toBlob(ret))
-	binary = await blob.arrayBuffer()
+	if (blob)
+		binary = await blob.arrayBuffer()
 
 	done()
 }
@@ -144,7 +145,8 @@ async function image_save(event)
 		img.onload = (event) => image_render(event, done)
 	})
 
-	dumpline.postMessage({ binary })
+	if (blob)
+		dumpline.postMessage({ binary })
 }
 
 document.addEventListener('paste', image_save)
