@@ -29,10 +29,41 @@ async function image_render(event, done)
 	done()
 }
 
+function parse_text(text)
+{
+	const lines = text.split('\n')
+	const san = document.createElement('div')
+	const out = "<div style='" +
+		    'color: var(--vscode-editor-foreground); ' +
+		    'background-color: var(--vscode-editor-foreground); ' +
+		    'font-family: var(--vscode-editor-font-family); ' +
+		    'font-weight: var(--vscode-editor-font-weight); ' +
+		    'font-weight: var(--vscode-editor-font-size); ' +
+		    'line-height: var(--vscode-repl-line-height); ' +
+		    "white-space: pre'>111</div>"
+
+	san.innerHTML = out
+	console.log(san)
+	document.body.appendChild(san);
+	const value = getComputedStyle(san).lineHeight;
+	console.log(value); // e.g. "18px"
+
+	// for (const line of lines) {
+	// 	san.textContent = line
+	// 	san.innerHTML
+	// }
+}
+
 function image_init(event)
 {
 	const trans = event.clipboardData
-	const data = trans.getData('text/html')
+	let data = trans.getData('text/html')
+
+	if (!data) {
+		const text = trans.getData('text/plain')
+
+		data = parse_text(text)
+	}
 
 	canvas.innerHTML = data
 

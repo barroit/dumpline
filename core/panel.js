@@ -5,12 +5,12 @@
 
 import { Uri } from 'vscode'
 
-export default function layout(webview, root)
+export default function panel_html(webview, root)
 {
-	const script = Uri.file(`${ root }/render.js`)
+	const script = Uri.file(`${ root }/dump.js`)
 	const script_uri = webview.asWebviewUri(script)
 
-	const style = Uri.file(`${ root }/layout.css`)
+	const style = Uri.file(`${ root }/panel.css`)
 	const style_uri = webview.asWebviewUri(style)
 
 return `

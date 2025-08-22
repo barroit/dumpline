@@ -7,7 +7,7 @@
    "version": "0.0.1",
    "publisher": "barroit",
    "license": "GPL-3.0-or-later",
-   "main": "dumpline.js",
+   "main": "entry.js",
    "activationEvents": [],
    "engines": {
       "vscode": "^1.74.0"

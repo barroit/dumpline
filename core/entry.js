@@ -8,7 +8,7 @@ import { platform } from 'node:process'
 import { commands, window, workspace, ViewColumn, Uri } from 'vscode'
 
 import { cfg_read, cfg_write_p } from './config.js'
-import layout from './layout.js'
+import panel_html from './panel.js'
 
 const { executeCommand, registerTextEditorCommand } = commands
 
@@ -96,7 +96,7 @@ function panel_init()
 	p.onDidDispose(panel_reset, undefined, dumpline.subscriptions)
 	p.iconPath = Uri.file(`${ root }/assets/negi-only.svg`)
 
-	webview.html = layout(webview, root)
+	webview.html = panel_html(webview, root)
 	webview.onDidReceiveMessage(message_handler,
 				    undefined, dumpline.subscriptions)
 
