@@ -3,7 +3,8 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
-import { writeFileSync, mkdirSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { platform } from 'node:process'
 import { commands, window, workspace, ViewColumn, Uri } from 'vscode'
 
@@ -17,29 +18,19 @@ let dumpline
 let panel
 
 let root
-let tmpdir
+let tmp
 let current
 
-function save_image({ binary })
+function save_image(binary)
 {
 	const buf = Buffer.from(binary)
 
-	writeFileSync(`${ tmpdir }/tmp.png`, buf)
+	writeFileSync(`${ tmp }/tmp.png`, buf)
 }
 
 function panel_reset()
 {
 	panel = undefined
-}
-
-function message_handler(event)
-{
-	if (event.error)
-		window.showErrorMessage(event.error)
-	else if (event.warn)
-		window.showWarningMessage(event.warn)
-	else
-		save_image(event)
 }
 
 function panel_init()
@@ -54,9 +45,9 @@ function panel_init()
 	const webview = p.webview
 
 	p.onDidDispose(panel_reset, undefined, dumpline.subscriptions)
-	p.iconPath = Uri.file(`${ root }/assets/negi-only.svg`)
+	p.iconPath = Uri.joinPath(root, 'assets/negi-only.svg')
 
-	webview.html = panel_html(webview, root)
+	webview.html = panel_html(webview, root, tmp)
 	webview.onDidReceiveMessage(message_handler,
 				    undefined, dumpline.subscriptions)
 
@@ -91,9 +82,15 @@ export function activate(ctx)
 	const exec = registerTextEditorCommand('dumpline.exec', dump_handler)
 
 	dumpline = ctx
-	root = dumpline.extensionPath
-	tmpdir = dumpline.globalStoragePath
+	root = dumpline.extensionUri
 
-	mkdirSync(tmpdir, { recursive: true })
+	tmp = tmpdir()
+	tmp = mkdtempSync(`${ tmp }/dumpline-`)
+
 	dumpline.subscriptions.push(exec)
+}
+
+export function deactivate()
+{
+	rmSync(tmp, { recursive: true, force: true })
 }

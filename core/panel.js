@@ -11,10 +11,10 @@ export default function panel_html(webview, root)
 	const rand = crypto.randomBytes(16)
 	const nonce = rand.toString('base64')
 
-	const script = Uri.file(`${ root }/dump.js`)
+	const script = Uri.joinPath(root, 'dump.js')
 	const script_uri = webview.asWebviewUri(script)
 
-	const style = Uri.file(`${ root }/panel.css`)
+	const style = Uri.joinPath(root, 'panel.css')
 	const style_uri = webview.asWebviewUri(style)
 
 return `
