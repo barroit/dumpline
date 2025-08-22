@@ -3,10 +3,14 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
+import crypto from "node:crypto"
 import { Uri } from 'vscode'
 
 export default function panel_html(webview, root)
 {
+	const rand = crypto.randomBytes(16)
+	const nonce = rand.toString('base64')
+
 	const script = Uri.file(`${ root }/dump.js`)
 	const script_uri = webview.asWebviewUri(script)
 
@@ -20,6 +24,11 @@ return `
 <head>
   <meta charset='utf-8'>
   <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <meta http-equiv='Content-Security-Policy'
+	content="default-src 'none';
+		 img-src data:;
+		 style-src ${ webview.cspSource } 'unsafe-inline';
+		 script-src 'nonce-${ nonce }'">
   <link rel='stylesheet' href='${ style_uri }'>
   <title>Dump</title>
 </head>
@@ -32,7 +41,7 @@ return `
     </svg>
     <canvas id='buffer'></canvas>
   </main>
-  <script src='${ script_uri }'></script>
+  <script nonce='${ nonce }' src='${ script_uri }'></script>
 </body>
 
 </html>
