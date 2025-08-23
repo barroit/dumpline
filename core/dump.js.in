@@ -193,6 +193,9 @@ async function image_dump(event)
 
 async function image_dump_clipboard(event)
 {
+	if (!canvas.contains(event.target))
+		return
+
 	if (!blob) {
 		warn('nothing to be done')
 		return

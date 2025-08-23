@@ -63,7 +63,6 @@ body {
 
 #canvas {
 	overflow: auto;
-	user-select: none;
 }
 
 #canvas > div {
