@@ -16,6 +16,7 @@ const canvas = document.getElementById('canvas')
 const buffer = document.getElementById('buffer')
 
 const banner = document.getElementById('banner')
+const button = document.getElementById('button')
 const link = document.getElementById('link')
 
 let dumpline
@@ -27,14 +28,19 @@ let complete
 
 let line_height_fixed = 0
 
-function error(str)
+function info(str)
 {
-	dumpline.postMessage({ error: str })
+	dumpline.postMessage({ info: str })
 }
 
 function warn(str)
 {
 	dumpline.postMessage({ warn: str })
+}
+
+function error(str)
+{
+	dumpline.postMessage({ error: str })
 }
 
 /*
@@ -163,7 +169,7 @@ function image_init(html)
 async function image_dump(event)
 {
 	if (!ctx.ready) {
-		error('command palette required')
+		error('Command palette required')
 		return
 	}
 	ctx.ready = 0
@@ -191,17 +197,12 @@ async function image_dump(event)
 		dumpline.postMessage({ binary })
 }
 
-async function image_dump_clipboard(event)
+function image_dump_clipboard()
 {
-	if (!canvas.contains(event.target))
-		return
-
 	if (!blob) {
-		warn('nothing to be done')
+		warn('Nothing to be done')
 		return
 	}
-
-	await new Promise(r => complete = r)
 
 	const data = {
 		[ blob.type ]: blob,
@@ -209,14 +210,37 @@ async function image_dump_clipboard(event)
 	const item = new ClipboardItem(data)
 
 	navigator.clipboard.write([ item ])
+	info('Image copied to clipboard')
 }
 
-document.addEventListener('cut',  image_dump_clipboard)
-document.addEventListener('copy', image_dump_clipboard)
-document.addEventListener('paste', image_dump)
+async function context_handler(event)
+{
+	if (event.type =='paste') {
+		image_dump(event)
+		return
+	}
+
+	if (!canvas.contains(event.target))
+		return
+
+	if (!document.hasFocus())
+		await new Promise(r => complete = r)
+
+	const selection = window.getSelection()
+
+	if (selection.isCollapsed)
+		image_dump_clipboard()
+}
+
+document.addEventListener('cut', context_handler)
+document.addEventListener('copy', context_handler)
+document.addEventListener('paste', context_handler)
 
 window.addEventListener('focus', () =>
 {
+	/*
+	 * Wait for focus to crawl back from context menu.
+	 */
 	if (complete) {
 		complete()
 		complete = undefined
@@ -238,6 +262,11 @@ window.addEventListener('message', event =>
 link.addEventListener('click', event =>
 {
 	dumpline.postMessage({ open: event.target.href })
+})
+
+button.addEventListener('click', event =>
+{
+	image_dump_clipboard()
 })
 
 banner.addEventListener('contextmenu', event =>

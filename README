@@ -1,4 +1,5 @@
 dumpline
 ========
 
-VS Code extension for dumping selected text to image.
+VS Code extension for dumping selected text to image. Other snapshot extensions
+just suck like hell, so I made this.

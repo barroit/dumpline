@@ -1,9 +1,10 @@
-/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* SPDX-License-Identifier: GPL-3.0-or-later AND Apache-2.0 */
 /*
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
+ * Google icon's under Apache-2.0
  */
 
-import crypto from "node:crypto"
+import crypto from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 import { Uri } from 'vscode'
 
@@ -38,12 +39,24 @@ return `
 
 <body>
   <header id='banner'>
-    <div>
-      <p>image dumped to: </p>
-      <div id='link-box'>
-	<a id='link' href='${ tmp_uri }'>${ tmp_uri }</a>
-      </div>
+    <div id='heading'>
+      <p role='heading' aria-level='1'>Dumped to directory: </p>
+      <button id='button'>
+	<svg xmlns='http://www.w3.org/2000/svg' fill='currentColor'
+	     viewBox='0 -960 960 960' height='24px' width='24px' >
+	  <title>Copy image</title>
+	  <path d='M760-200H320q-33 0-56.5-23.5T240-280v-560q0-33
+		   23.5-56.5T320-920h280l240 240v400q0 33-23.5
+		   56.5T760-200ZM560-640v-200H320v560h440v-360H560ZM160-40q-33
+		   0-56.5-23.5T80-120v-560h80v560h440v80H160Zm160-800v200-200
+		   560-560Z'/>
+	</svg>
+      </button>
     </div>
+    <div id='link-box'>
+      <a id='link' href='${ tmp_uri }'>${ tmp_uri }</a>
+    </div>
+    <div></div>
   </header>
   <main>
     <svg xmlns='http://www.w3.org/2000/svg'

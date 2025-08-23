@@ -34,12 +34,16 @@ function message_handler(event)
 	let cb
 
 	switch (action) {
-	case 'error':
-		cb = window.showErrorMessage
+	case 'info':
+		cb = window.showInformationMessage
 		break
 
 	case 'warn':
 		cb = window.showWarningMessage
+		break
+
+	case 'error':
+		cb = window.showErrorMessage
 		break
 
 	case 'open':
