@@ -3,7 +3,7 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
-import { cfg_read } from './config.js'
+import { cfg_read, cfg_write } from './config.js'
 
 const LINE_HEIGHT = 0
 let LINE_HEIGHT_RATIO
@@ -21,6 +21,8 @@ let ctx
 let binary
 let blob
 let complete
+
+let line_height_fixed = 0
 
 function error(str)
 {
@@ -48,25 +50,43 @@ function line_height_calc(h, scale)
 	return h < LINE_HEIGHT_MIN ? LINE_HEIGHT_MIN : h
 }
 
+function fixup_line_height()
+{
+	const root = document.documentElement
+	const styles = getComputedStyle(canvas)
+
+	const font_size = styles.getPropertyValue('--vscode-editor-font-size')
+	let line_height = cfg_read(ctx.config, 'editor', 'lineHeight')
+
+	if (!Number.isInteger(line_height))
+		line_height = LINE_HEIGHT
+	line_height = line_height_calc(line_height, parseInt(font_size))
+
+	cfg_write(ctx.config, 'editor', 'lineHeight', line_height)
+	root.style.setProperty('--39-line-height', `${ line_height }px`)
+	line_height_fixed = 1
+}
+
+function css_prop(styles, name)
+{
+	return styles.getPropertyValue(name)
+}
+
 function parse_text(text, styles)
 {
-	const fg = styles.getPropertyValue('--vscode-editor-foreground')
-	const bg = styles.getPropertyValue('--vscode-editor-background')
-	const ff = styles.getPropertyValue('--vscode-editor-font-family')
-	const fw = styles.getPropertyValue('--vscode-editor-font-weight')
-	const fs = styles.getPropertyValue('--vscode-editor-font-size')
-	let lh = cfg_read(ctx.config, 'editor', 'lineHeight')
+	const foreground = css_prop(styles, '--vscode-editor-foreground')
+	const background = css_prop(styles, '--vscode-editor-background')
+	const font_family = css_prop(styles, '--vscode-editor-font-family')
+	const font_weight = css_prop(styles, '--vscode-editor-font-weight')
+	const fone_size = css_prop(styles, '--vscode-editor-font-size')
+	const line_height = css_prop(styles, '--39-line-height')
 
-	if (!Number.isInteger(lh))
-		lh = LINE_HEIGHT
-	lh = line_height_calc(lh, parseInt(fs))
-
-	let out = `<div style="color: ${ fg }; ` +
-			      `background-color: ${ bg }; ` +
-			      `font-family: ${ ff }; ` +
-			      `font-weight: ${ fw }; ` +
-			      `font-size: ${ fs }; ` +
-			      `line-height: ${ lh }px; ` +
+	let out = `<div style="color: ${ foreground }; ` +
+			      `background-color: ${ background }; ` +
+			      `font-family: ${ font_family }; ` +
+			      `font-weight: ${ font_weight }; ` +
+			      `font-size: ${ fone_size }; ` +
+			      `line-height: ${ line_height }; ` +
 			      'white-space: pre">'
 
 	const lines = text.split('\n')
@@ -80,7 +100,7 @@ function parse_text(text, styles)
 
 		san.textContent = line
 		out += '<div>' +
-			 `<span style="color: ${ fg }">` +
+			 `<span style="color: ${ foreground }">` +
 			    san.innerHTML +
 			 '</span>' +
 		       '</div>'
@@ -137,13 +157,16 @@ function image_init(html)
 	return clone
 }
 
-async function image_save(event)
+async function image_dump(event)
 {
 	if (!ctx.ready) {
 		error('command palette required')
 		return
 	}
 	ctx.ready = 0
+
+	if (!line_height_fixed)
+		fixup_line_height()
 
 	const html = clipboard_as_html(event.clipboardData)
 	const xml = image_init(html)
@@ -165,7 +188,7 @@ async function image_save(event)
 		dumpline.postMessage({ binary })
 }
 
-async function image_save_clipboard(event)
+async function image_dump_clipboard(event)
 {
 	if (!blob) {
 		warn('nothing to be done')
@@ -182,9 +205,9 @@ async function image_save_clipboard(event)
 	navigator.clipboard.write([ item ])
 }
 
-document.addEventListener('cut',  image_save_clipboard)
-document.addEventListener('copy', image_save_clipboard)
-document.addEventListener('paste', image_save)
+document.addEventListener('cut',  image_dump_clipboard)
+document.addEventListener('copy', image_dump_clipboard)
+document.addEventListener('paste', image_dump)
 
 window.addEventListener('focus', () =>
 {
