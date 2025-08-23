@@ -14,7 +14,7 @@ obj-y := .vscodeignore README package.json \
 obj-y := $(patsubst %,build/%,$(obj-y))
 obj-y += $(core-y)
 
-.PHONY: dump.js dumpline.vsix install uninstall
+.PHONY: dump.js dumpline.vsix install uninstall publish
 
 install:
 
@@ -35,3 +35,6 @@ install: dumpline.vsix
 uninstall:
 	code --uninstall-extension \
 	     $$(code --list-extensions | grep dumpline || printf '39\n')
+
+publish:
+	cd build && npx --prefix .. vsce publish
