@@ -4,6 +4,7 @@
  */
 
 import { cfg_read, cfg_write } from './config.js'
+import line_style from './line.css'
 
 const LINE_HEIGHT = 0
 let LINE_HEIGHT_RATIO
@@ -26,7 +27,8 @@ let binary
 let blob
 let complete
 
-let line_height_fixed = 0
+let line_height_defined = 0
+let line_number_color_defined = 0
 
 function info(str)
 {
@@ -41,6 +43,11 @@ function warn(str)
 function error(str)
 {
 	dumpline.postMessage({ error: str })
+}
+
+function css_prop(styles, name)
+{
+	return styles.getPropertyValue(name)
 }
 
 /*
@@ -59,26 +66,26 @@ function line_height_calc(h, scale)
 	return h < LINE_HEIGHT_MIN ? LINE_HEIGHT_MIN : h
 }
 
-function fixup_line_height()
+function define_line_number_color(root, styles)
 {
-	const root = document.documentElement
-	const styles = getComputedStyle(canvas)
+	const fg = css_prop(styles, '--vscode-editorLineNumber-foreground')
 
-	const font_size = styles.getPropertyValue('--vscode-editor-font-size')
-	let line_height = cfg_read(ctx.config, 'editor', 'lineHeight')
+	root.style.setProperty('--39-line-number-color', fg)
+	line_number_color_defined = 1
+}
+
+function define_line_height(config, root, styles)
+{
+	const font_size = css_prop(styles, '--vscode-editor-font-size')
+	let line_height = cfg_read(config, 'editor', 'lineHeight')
 
 	if (!Number.isInteger(line_height))
 		line_height = LINE_HEIGHT
 	line_height = line_height_calc(line_height, parseInt(font_size))
 
-	cfg_write(ctx.config, 'editor', 'lineHeight', line_height)
+	cfg_write(config, 'editor', 'lineHeight', line_height)
 	root.style.setProperty('--39-line-height', `${ line_height }px`)
-	line_height_fixed = 1
-}
-
-function css_prop(styles, name)
-{
-	return styles.getPropertyValue(name)
+	line_height_defined = 1
 }
 
 function parse_text(text, styles)
@@ -132,6 +139,57 @@ function clipboard_as_html(transfer)
 	return parse_text(text, styles)
 }
 
+function digitlen(n)
+{
+	return (Math.log10(n) >>> 0) + 1
+}
+
+function newline_node()
+{
+	const div = document.createElement('div')
+	const span = document.createElement('span')
+	const br = document.createElement('br')
+
+	span.style.visibility = 'hidden'
+	span.textContent = '\u200B'
+
+	div.appendChild(span)
+	div.appendChild(br)
+
+	return div
+}
+
+function setup_line_number(box)
+{
+	const start = ctx.block.start.line + 1
+	const end = ctx.block.end.line + 1
+
+	let next = box.firstElementChild
+	let line = start
+
+	const width = digitlen(end)
+	const table = Array(width + 1).fill(' ')
+				      .map((s, i) => s.repeat(i)).reverse()
+
+	const newline = newline_node()
+
+	do {
+		const idx = digitlen(line)
+
+		if (next.tagName == 'BR') {
+			const clone = newline.cloneNode(true)
+
+			box.replaceChild(clone, next)
+			next = clone
+		}
+
+		next.classList.add('line')
+		next.dataset.number = `${ table[idx] }${ line }`
+
+		line++
+	} while (next = next.nextElementSibling)
+}
+
 async function image_render(event, done)
 {
 	const img = event.target
@@ -147,25 +205,6 @@ async function image_render(event, done)
 	done()
 }
 
-function image_init(html)
-{
-	canvas.innerHTML = html
-
-	const clone = canvas_box.cloneNode(true)
-	const child = canvas.firstChild
-
-	const w = child.offsetWidth
-	const h = child.offsetHeight
-
-	clone.setAttribute('width', w)
-	clone.setAttribute('height', h)
-
-	buffer.width = w * scale
-	buffer.height = h * scale
-
-	return clone
-}
-
 async function image_dump(event)
 {
 	if (!ctx.ready) {
@@ -174,14 +213,37 @@ async function image_dump(event)
 	}
 	ctx.ready = 0
 
-	if (!line_height_fixed)
-		fixup_line_height()
+	const root = document.documentElement
+	const styles = getComputedStyle(canvas)
+
+	if (!line_height_defined)
+		define_line_height(ctx.config, root, styles)
+	if (!line_number_color_defined)
+		define_line_number_color(root, styles)
 
 	const html = clipboard_as_html(event.clipboardData)
-	const xml = image_init(html)
 
-	const fmter = new XMLSerializer()
-	const str = fmter.serializeToString(xml)
+	canvas.innerHTML = html
+
+	if (1)
+		setup_line_number(canvas.firstElementChild)
+
+	const clone = canvas_box.cloneNode(true)
+	const w = canvas.firstElementChild.offsetWidth
+	const h = canvas.firstElementChild.offsetHeight
+
+	clone.setAttribute('width', w)
+	clone.setAttribute('height', h)
+	buffer.width = w * scale
+	buffer.height = h * scale
+
+	const style = document.createElement('style')
+
+	style.textContent = line_style
+	clone.prepend(style)
+
+	const serializer = new XMLSerializer()
+	const str = serializer.serializeToString(clone)
 
 	const uri = encodeURIComponent(str)
 	const b64 = `data:image/svg+xml;charset=utf-8,${ uri }`
@@ -199,10 +261,10 @@ async function image_dump(event)
 
 function image_dump_clipboard()
 {
-	if (!blob) {
-		warn('Nothing to be done')
-		return
-	}
+	// if (!blob) {
+	// 	warn('Nothing to be done')
+	// 	return
+	// }
 
 	const data = {
 		[ blob.type ]: blob,

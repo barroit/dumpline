@@ -16,8 +16,11 @@ export default function panel_html(webview, root, tmp)
 	const script = Uri.joinPath(root, 'dump.js')
 	const script_uri = webview.asWebviewUri(script)
 
-	const style = Uri.joinPath(root, 'panel.css')
-	const style_uri = webview.asWebviewUri(style)
+	const panel_css = Uri.joinPath(root, 'panel.css')
+	const panel_css_uri = webview.asWebviewUri(panel_css)
+
+	const line_css = Uri.joinPath(root, 'line.css')
+	const line_css_uri = webview.asWebviewUri(line_css)
 
 	const tmp_uri = pathToFileURL(tmp)
 
@@ -33,7 +36,8 @@ return `
 		 img-src data:;
 		 style-src ${ webview.cspSource } 'unsafe-inline';
 		 script-src 'nonce-${ nonce }'">
-  <link rel='stylesheet' href='${ style_uri }'>
+  <link rel='stylesheet' href='${ line_css_uri }'>
+  <link rel='stylesheet' href='${ panel_css_uri }'>
   <title>Dump</title>
 </head>
 

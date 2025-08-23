@@ -24,7 +24,7 @@ build/%: %
 
 dump.js: $(pack-y) $(core-y)
 	head -5 $< >build/$@
-	esbuild --loader:.in=js --bundle $< >>build/$@
+	esbuild --loader:.in=js --loader:.css=text --bundle $< >>build/$@
 
 dumpline.vsix: dump.js $(obj-y)
 	cd build && npx --prefix .. vsce package --skip-license -o $@
