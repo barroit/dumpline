@@ -4,9 +4,10 @@
  */
 
 import crypto from "node:crypto"
+import { pathToFileURL } from 'node:url'
 import { Uri } from 'vscode'
 
-export default function panel_html(webview, root)
+export default function panel_html(webview, root, tmp)
 {
 	const rand = crypto.randomBytes(16)
 	const nonce = rand.toString('base64')
@@ -16,6 +17,8 @@ export default function panel_html(webview, root)
 
 	const style = Uri.joinPath(root, 'panel.css')
 	const style_uri = webview.asWebviewUri(style)
+
+	const tmp_uri = pathToFileURL(tmp)
 
 return `
 <!DOCTYPE html>
@@ -34,6 +37,14 @@ return `
 </head>
 
 <body>
+  <header id='banner'>
+    <div>
+      <p>image dumped to: </p>
+      <div id='link-box'>
+	<a id='link' href='${ tmp_uri }'>${ tmp_uri }</a>
+      </div>
+    </div>
+  </header>
   <main>
     <svg xmlns='http://www.w3.org/2000/svg'
 	 id='canvas-box' width='100%' height='100%'>

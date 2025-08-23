@@ -6,7 +6,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { platform } from 'node:process'
-import { commands, window, workspace, ViewColumn, Uri } from 'vscode'
+import { env, commands, window, workspace, ViewColumn, Uri } from 'vscode'
 
 import panel_html from './panel.js'
 
@@ -26,6 +26,31 @@ function save_image(binary)
 	const buf = Buffer.from(binary)
 
 	writeFileSync(`${ tmp }/tmp.png`, buf)
+}
+
+function message_handler(event)
+{
+	const [ action ] = Object.keys(event)
+	let cb
+
+	switch (action) {
+	case 'error':
+		cb = window.showErrorMessage
+		break
+
+	case 'warn':
+		cb = window.showWarningMessage
+		break
+
+	case 'open':
+		cb = env.openExternal
+		break
+
+	case 'binary':
+		cb = save_image
+	}
+
+	cb(event[action])
 }
 
 function panel_reset()

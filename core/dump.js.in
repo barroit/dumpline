@@ -15,6 +15,9 @@ const canvas_box = document.getElementById('canvas-box')
 const canvas = document.getElementById('canvas')
 const buffer = document.getElementById('buffer')
 
+const banner = document.getElementById('banner')
+const link = document.getElementById('link')
+
 let dumpline
 let ctx
 
@@ -227,4 +230,14 @@ window.addEventListener('message', event =>
 
 	LINE_HEIGHT_RATIO = ctx.platform == 'darwin' ? 1.5 : 1.35
 	document.execCommand('paste')
+})
+
+link.addEventListener('click', event =>
+{
+	dumpline.postMessage({ open: event.target.href })
+})
+
+banner.addEventListener('contextmenu', event =>
+{
+	event.preventDefault()
 })

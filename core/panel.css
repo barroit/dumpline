@@ -9,15 +9,66 @@ html, body, main, #buffer {
 
 html {
 	overflow: hidden;
-	user-select: none;
 }
 
 body {
 	padding-inline: 2ch 0;
 }
 
+#banner {
+	position: absolute;
+	inset-inline: 0;
+	inset-block-start: 0;
+
+	padding-inline-start: 1ch;
+
+	color: var(--vscode-editor-foreground);
+	background-color: var(--vscode-editor-background);
+
+	font-family: var(--vscode-editor-font-family);
+	font-weight: var(--vscode-editor-font-weight);
+	font-size: var(--vscode-editor-font-size);
+
+	line-height: var(--39-line-height);
+}
+
+#banner > div {
+	padding-inline: 1ch;
+	padding-block-end: 1ch;
+
+	border-style: solid;
+	border-color: var(--vscode-editor-foreground);
+
+	border-inline-width: 0;
+	border-block-start-width: 0;
+
+	/*
+	 * Right operand's not unitless, but CSS doesn't give a damn.
+	 */
+	border-block-end-width: calc(var(--39-line-height) /
+				     var(--vscode-editor-font-size));
+}
+
+#banner p {
+	margin-block: 1ch;
+}
+
+#link-box {
+	padding-inline-start: 2ch;
+}
+
+#link {
+	cursor: pointer;
+}
+
 #canvas {
 	overflow: auto;
+	user-select: none;
+}
+
+#canvas > div {
+	margin-block-start: 9ch;
+	margin-inline-end: 1ch;
 }
 
 #canvas div {
