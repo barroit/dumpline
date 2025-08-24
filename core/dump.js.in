@@ -155,8 +155,25 @@ function empty_line()
 
 	div.appendChild(span)
 	div.appendChild(br)
+	div.dataset.empty = ''
 
 	return div
+}
+
+function canonicalize_node(box)
+{
+	let next = box.firstElementChild
+	const alt = empty_line()
+
+	do {
+		if (next.tagName != 'BR' && next.firstElementChild)
+			continue
+
+		const clone = alt.cloneNode(true)
+
+		box.replaceChild(clone, next)
+		next = clone
+	} while (next = next.nextElementSibling)
 }
 
 function setup_line_number(box)
@@ -176,17 +193,22 @@ function setup_line_number(box)
 	do {
 		const idx = digitlen(line)
 
-		if (next.tagName == 'BR') {
-			const clone = newline.cloneNode(true)
-
-			box.replaceChild(clone, next)
-			next = clone
-		}
-
 		next.dataset.number = `${ table[idx] }${ line }`
 
 		line++
 	} while (next = next.nextElementSibling)
+}
+
+function trim_end(box)
+{
+	let next = box.lastElementChild
+
+	do {
+		if (next.dataset.empty == undefined)
+			break
+
+		box.removeChild(next)
+	} while (next = box.lastElementChild)
 }
 
 async function image_render(event, done)
@@ -224,8 +246,13 @@ async function image_dump(event)
 
 	const codebox = canvas.firstElementChild
 
+	canonicalize_node(codebox)
+
 	if (1)
 		setup_line_number(codebox)
+
+	if (1)
+		trim_end(codebox)
 
 	codebox.id = 'codebox'
 
@@ -262,10 +289,11 @@ async function image_dump(event)
 
 function image_dump_clipboard()
 {
-	// if (!blob) {
-	// 	warn('Nothing to be done')
-	// 	return
-	// }
+	console.log('blob', blob)
+	if (!blob) {
+		warn('Nothing to be done')
+		return
+	}
 
 	const data = {
 		[ blob.type ]: blob,
@@ -283,7 +311,7 @@ async function context_handler(event)
 		return
 	}
 
-	if (!canvas.contains(event.target))
+	if (banner.contains(event.target))
 		return
 
 	if (!document.hasFocus())
