@@ -3,14 +3,10 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
-export function cfg_read(head, ...pathspec)
+export function cfg_read(head, ...args)
 {
-	for (const path of pathspec) {
-		if (!head[path])
-			return undefined
-
-		head = head[path]
-	}
+	for (let i = 0; head != undefined && i < args.length; i++)
+		head = head[args[i]]
 
 	return head
 }
@@ -23,10 +19,16 @@ export function cfg_write(head, ...args)
 	head[args[args.length - 2]] = args[args.length - 1]
 }
 
+function object(val)
+{
+	return val !== null && typeof val == 'object' && !Array.isArray(val)
+}
+
 export function cfg_write_p(head, ...args)
 {
 	for (let i = 0; i < args.length - 2; i++) {
-		head[args[i]] ??= {}
+		if (!object(head[args[i]]))
+			head[args[i]] = {}
 		head = head[args[i]]
 	}
 

@@ -8,18 +8,71 @@ import { tmpdir } from 'node:os'
 import { platform } from 'node:process'
 import { env, commands, window, workspace, ViewColumn, Uri } from 'vscode'
 
+import { cfg_read, cfg_write, cfg_write_p } from './config.js'
 import panel_html from './panel.js'
 
 const { executeCommand, registerTextEditorCommand } = commands
 
 const cp = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
 
+/*
+ * Name property like a builtin. Then enjoy output like:
+ *
+ *	-       function trimEnd() { [native code] }
+ *	+       enabled
+ */
+const config_table = [
+]
+
 let dumpline
+let meta
 let panel
 
 let root
 let tmp
 let current
+
+/*
+ * Cleanup exists because idiots keep fucking config up.
+ */
+function sanitize_config(config)
+{
+	const sample = meta.contributes.configuration.properties
+	const fix = {}
+	const invalid = []
+
+	for (const { name, path } of config_table) {
+		const ours = sample[name]
+		const theirs = cfg_read(config, ...path)
+		let pass
+
+		if (ours.enum)
+			pass = ours.enum.find(val => val === theirs)
+		else
+			pass = ours.type == typeof theirs
+
+		cfg_write_p(fix, ...path, pass ? theirs : ours.default)
+
+		if (!pass) {
+			invalid.push(`@  ${ name }\n` +
+				     `\u2212       ${ theirs }\n` +
+				     `\u002b       ${ ours.default }`)
+		}
+	}
+
+	cfg_write(config, '39dump', fix['39dump'])
+
+	if (!invalid.length)
+		return
+
+	const heading = 'Bad config, defaulting:\n'
+	const detail = invalid.join('\n\n')
+
+	window.showWarningMessage(heading, {
+		detail,
+		modal: true,
+	})
+}
 
 function save_image(binary)
 {
@@ -103,6 +156,7 @@ async function dump_handler()
 
 	current.config = JSON.stringify(current.config)
 	current.config = JSON.parse(current.config)
+	sanitize_config(current.config)
 
 	if (panel)
 		panel.reveal(panel.viewColumn, true)
@@ -119,13 +173,14 @@ async function dump_handler()
 
 export function activate(ctx)
 {
-	const exec = registerTextEditorCommand('dumpline.exec', dump_handler)
-
 	dumpline = ctx
+	meta = dumpline.extension.packageJSON
 	root = dumpline.extensionUri
 
 	tmp = tmpdir()
 	tmp = mkdtempSync(`${ tmp }/dumpline-`)
+
+	const exec = registerTextEditorCommand('dumpline.exec', dump_handler)
 
 	dumpline.subscriptions.push(exec)
 }

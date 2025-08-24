@@ -151,7 +151,7 @@ function empty_line()
 	const br = document.createElement('br')
 
 	span.style.visibility = 'hidden'
-	span.textContent = '\u200B'
+	span.textContent = '\u200b'
 
 	div.appendChild(span)
 	div.appendChild(br)
