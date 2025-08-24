@@ -3,7 +3,7 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
-import { cfg_read, cfg_write } from './config.js'
+import { cfg_read, cfg_write_p } from './config.js'
 import line_style from './line.css'
 
 const LINE_HEIGHT = 0
@@ -83,7 +83,7 @@ function define_line_height(config, root, styles)
 		line_height = LINE_HEIGHT
 	line_height = line_height_calc(line_height, parseInt(font_size))
 
-	cfg_write(config, 'editor', 'lineHeight', line_height)
+	cfg_write_p(config, 'editor', 'lineHeight', line_height)
 	root.style.setProperty('--39-line-height', `${ line_height }px`)
 	line_height_defined = 1
 }
