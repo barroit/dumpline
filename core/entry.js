@@ -64,7 +64,7 @@ function panel_reset()
 
 function panel_init()
 {
-	const p = window.createWebviewPanel('dumpline', 'Dump', {
+	const p = window.createWebviewPanel('dumpline', '39dump', {
 		viewColumn: ViewColumn.Beside,
 		preserveFocus: true,
 	}, {
@@ -81,6 +81,17 @@ function panel_init()
 				    undefined, dumpline.subscriptions)
 
 	return p
+}
+
+function panel_close()
+{
+	const groups = window.tabGroups.all
+	const group = groups.find(val => val.viewColumn == panel.viewColumn)
+
+	const tabs = group.tabs
+	const tab = tabs.find(val => val.label == '39dump')
+
+	window.tabGroups.close(tab)
 }
 
 async function dump_handler()
@@ -121,5 +132,8 @@ export function activate(ctx)
 
 export function deactivate()
 {
+	if (panel)
+		panel_close()
+
 	rmSync(tmp, { recursive: true, force: true })
 }
