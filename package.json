@@ -19,7 +19,7 @@
    ],
    "repository": {
       "type": "git",
-      "url": "git@github.com:barroit/dumpline.git"
+      "url": "git+ssh://git@github.com:barroit/dumpline.git"
    },
    "contributes": {
       "commands": [
