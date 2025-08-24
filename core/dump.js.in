@@ -144,7 +144,7 @@ function digitlen(n)
 	return (Math.log10(n) >>> 0) + 1
 }
 
-function newline_node()
+function empty_line()
 {
 	const div = document.createElement('div')
 	const span = document.createElement('span')
@@ -171,7 +171,7 @@ function setup_line_number(box)
 	const table = Array(width + 1).fill(' ')
 				      .map((s, i) => s.repeat(i)).reverse()
 
-	const newline = newline_node()
+	const newline = empty_line()
 
 	do {
 		const idx = digitlen(line)
@@ -183,7 +183,6 @@ function setup_line_number(box)
 			next = clone
 		}
 
-		next.classList.add('line')
 		next.dataset.number = `${ table[idx] }${ line }`
 
 		line++
@@ -221,16 +220,18 @@ async function image_dump(event)
 	if (!line_number_color_defined)
 		define_line_number_color(root, styles)
 
-	const html = clipboard_as_html(event.clipboardData)
+	canvas.innerHTML = clipboard_as_html(event.clipboardData)
 
-	canvas.innerHTML = html
+	const codebox = canvas.firstElementChild
 
 	if (1)
-		setup_line_number(canvas.firstElementChild)
+		setup_line_number(codebox)
+
+	codebox.id = 'codebox'
 
 	const clone = canvas_box.cloneNode(true)
-	const w = canvas.firstElementChild.offsetWidth
-	const h = canvas.firstElementChild.offsetHeight
+	const w = codebox.offsetWidth
+	const h = codebox.offsetHeight
 
 	clone.setAttribute('width', w)
 	clone.setAttribute('height', h)

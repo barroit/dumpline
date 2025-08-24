@@ -3,7 +3,7 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
-.line::before {
+#codebox > *::before {
 	content: attr(data-number);
 
 	padding-inline-end: 2ch;
