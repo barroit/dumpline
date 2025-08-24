@@ -327,10 +327,8 @@ link.addEventListener('click', event =>
 	dumpline.postMessage({ open: event.target.href })
 })
 
-button.addEventListener('click', event =>
-{
-	image_dump_clipboard()
-})
+button.addEventListener('click', image_dump_clipboard)
+button.addEventListener('contextmenu', image_dump_clipboard)
 
 banner.addEventListener('contextmenu', event =>
 {
