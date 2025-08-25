@@ -54,7 +54,9 @@ function css_prop(styles, name)
 
 function enabled(config, ...path)
 {
-	return cfg_read(config, ...path) == 'enabled'
+	const val = cfg_read(config, ...path)
+
+	return val == 'enabled' || val === true
 }
 
 /*
@@ -241,6 +243,30 @@ function trim_tail(box)
 	} while (next = box.lastElementChild)
 }
 
+function calc_pad(line, at)
+{
+	let len = 0
+
+	for (let i = 0; at > 0; i++, at--) {
+		if (line[i] != '\t')
+			len += wcwidth(line[i])
+		else
+			len += tabspan(len, ctx.tabstop)
+	}
+
+	return len
+}
+
+function pad_head(box)
+{
+	const pad = calc_pad(ctx.head, ctx.block.start.character)
+	const div = box.firstChild
+	const span = div.firstChild
+
+	div.classList.add('pad')
+	span.dataset.padding = ' '.repeat(pad)
+}
+
 async function image_render(event, done)
 {
 	const img = event.target
@@ -285,6 +311,9 @@ async function image_dump(event)
 
 	if (enabled(ctx.config, '39dump', 'trimTail'))
 		trim_tail(codebox)
+
+	if (enabled(ctx.config, '39dump', 'padHead'))
+		pad_head(codebox)
 
 	codebox.id = 'codebox'
 
