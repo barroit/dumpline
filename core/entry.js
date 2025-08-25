@@ -26,6 +26,10 @@ const config_table = [
 		name: '39dump.lineNumber',
 		path: [ '39dump', 'lineNumber' ],
 	},
+	{
+		name: '39dump.trimNewline',
+		path: [ '39dump', 'trimNewline' ],
+	},
 ]
 
 let dumpline

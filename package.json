@@ -41,6 +41,15 @@
                   "enabled"
                ],
                "type": "string"
+            },
+            "39dump.trimNewline": {
+               "default": "enabled",
+               "description": "Drop trailing newline",
+               "enum": [
+                  "disabled",
+                  "enabled"
+               ],
+               "type": "string"
             }
          }
       },

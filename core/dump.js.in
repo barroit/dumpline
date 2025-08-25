@@ -50,6 +50,11 @@ function css_prop(styles, name)
 	return styles.getPropertyValue(name)
 }
 
+function enabled(config, ...path)
+{
+	return cfg_read(config, ...path) == 'enabled'
+}
+
 /*
  * No API? Fine. We just went ahead and built the damn thing ourselves.
  *
@@ -199,7 +204,7 @@ function setup_line_number(box)
 	} while (next = next.nextElementSibling)
 }
 
-function trim_end(box)
+function trim_newline(box)
 {
 	let next = box.lastElementChild
 
@@ -248,13 +253,13 @@ async function image_dump(event)
 
 	canonicalize_node(codebox)
 
-	if (cfg_read(ctx.config, '39dump', 'lineNumber') == 'enabled')
+	if (enabled(ctx.config, '39dump', 'lineNumber'))
 		setup_line_number(codebox)
 	else
 		codebox.classList.add('line-number-disabled')
 
-	if (1)
-		trim_end(codebox)
+	if (enabled(ctx.config, '39dump', 'trimNewline'))
+		trim_newline(codebox)
 
 	codebox.id = 'codebox'
 
