@@ -42,7 +42,7 @@
                ],
                "type": "string"
             },
-            "39dump.trimNewline": {
+            "39dump.trimTail": {
                "default": "enabled",
                "description": "Drop trailing newline",
                "enum": [

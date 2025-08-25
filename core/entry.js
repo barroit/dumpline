@@ -27,8 +27,8 @@ const config_table = [
 		path: [ '39dump', 'lineNumber' ],
 	},
 	{
-		name: '39dump.trimNewline',
-		path: [ '39dump', 'trimNewline' ],
+		name: '39dump.trimTail',
+		path: [ '39dump', 'trimTail' ],
 	},
 ]
 

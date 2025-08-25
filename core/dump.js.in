@@ -204,7 +204,7 @@ function setup_line_number(box)
 	} while (next = next.nextElementSibling)
 }
 
-function trim_newline(box)
+function trim_tail(box)
 {
 	let next = box.lastElementChild
 
@@ -258,8 +258,8 @@ async function image_dump(event)
 	else
 		codebox.classList.add('line-number-disabled')
 
-	if (enabled(ctx.config, '39dump', 'trimNewline'))
-		trim_newline(codebox)
+	if (enabled(ctx.config, '39dump', 'trimTail'))
+		trim_tail(codebox)
 
 	codebox.id = 'codebox'
 
