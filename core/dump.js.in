@@ -248,8 +248,10 @@ async function image_dump(event)
 
 	canonicalize_node(codebox)
 
-	if (1)
+	if (cfg_read(ctx.config, '39dump', 'lineNumber') == 'enabled')
 		setup_line_number(codebox)
+	else
+		codebox.classList.add('line-number-disabled')
 
 	if (1)
 		trim_end(codebox)
@@ -289,7 +291,6 @@ async function image_dump(event)
 
 function image_dump_clipboard()
 {
-	console.log('blob', blob)
 	if (!blob) {
 		warn('Nothing to be done')
 		return

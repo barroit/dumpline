@@ -25,10 +25,25 @@
       "commands": [
          {
             "command": "dumpline.exec",
-            "title": "Dump line",
+            "title": "dump selection",
+            "category": "39dump",
             "enablement": "editorHasSelection && !editorHasMultipleSelections"
          }
       ],
+      "configuration": {
+         "title": "39dump",
+         "properties": {
+            "39dump.lineNumber": {
+               "default": "enabled",
+               "description": "Show line number",
+               "enum": [
+                  "disabled",
+                  "enabled"
+               ],
+               "type": "string"
+            }
+         }
+      },
       "menus": {
          "editor/context": [
             {

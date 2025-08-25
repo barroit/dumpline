@@ -22,6 +22,10 @@ const cp = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
  *	+       enabled
  */
 const config_table = [
+	{
+		name: '39dump.lineNumber',
+		path: [ '39dump', 'lineNumber' ],
+	},
 ]
 
 let dumpline
