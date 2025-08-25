@@ -15,23 +15,6 @@ const { executeCommand, registerTextEditorCommand } = commands
 
 const cp = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
 
-/*
- * Name property like a builtin. Then enjoy output like:
- *
- *	-       function trimEnd() { [native code] }
- *	+       enabled
- */
-const config_table = [
-	{
-		name: '39dump.lineNumber',
-		path: [ '39dump', 'lineNumber' ],
-	},
-	{
-		name: '39dump.trimTail',
-		path: [ '39dump', 'trimTail' ],
-	},
-]
-
 let dumpline
 let meta
 let panel
@@ -46,10 +29,13 @@ let current
 function sanitize_config(config)
 {
 	const sample = meta.contributes.configuration.properties
+	const names = Object.keys(sample)
+	const table = names.map(name => ({ name, path: name.split('.') }))
+
 	const fix = {}
 	const invalid = []
 
-	for (const { name, path } of config_table) {
+	for (const { name, path } of table) {
 		const ours = sample[name]
 		const theirs = cfg_read(config, ...path)
 		let pass
@@ -61,11 +47,18 @@ function sanitize_config(config)
 
 		cfg_write_p(fix, ...path, pass ? theirs : ours.default)
 
-		if (!pass) {
-			invalid.push(`@  ${ name }\n` +
-				     `\u2212       ${ theirs }\n` +
-				     `\u002b       ${ ours.default }`)
-		}
+		if (pass)
+			continue
+
+		/*
+		 * Name property like a builtin. Then enjoy output like:
+		 *
+		 *	-       function trimEnd() { [native code] }
+		 *	+       enabled
+		 */
+		invalid.push(`@  ${ name }\n` +
+			     `\u2212       ${ theirs }\n` +
+			     `\u002b       ${ ours.default }`)
 	}
 
 	cfg_write(config, '39dump', fix['39dump'])
