@@ -21,7 +21,6 @@ let panel
 
 let root
 let tmp
-let current
 
 /*
  * Cleanup exists because idiots keep fucking config up.
@@ -148,28 +147,38 @@ function panel_close()
 	window.tabGroups.close(tab)
 }
 
+function sanitize_object(obj)
+{
+	return JSON.parse(JSON.stringify(obj))
+}
+
 async function dump_handler()
 {
-	current = {
-		editor: window.activeTextEditor,
-		config: workspace.getConfiguration(),
-	}
+	const editor = window.activeTextEditor
+	const vs_config = workspace.getConfiguration()
+	const config = sanitize_object(vs_config)
 
-	current.config = JSON.stringify(current.config)
-	current.config = JSON.parse(current.config)
-	sanitize_config(current.config)
+	sanitize_config(config)
 
 	if (panel)
 		panel.reveal(panel.viewColumn, true)
 	else
 		panel = panel_init()
 
+	const data = {}
+
+	data.config = config
+	data.block = editor.selection
+
+	const first = data.block.start.line
+	const line = editor.document.lineAt(first)
+
+	data.head = line.text
+	data.platform = platform
+	data.tabstop = editor.options.tabSize
+
 	await executeCommand(cp)
-	panel.webview.postMessage({
-		config: current.config,
-		block: current.editor.selection,
-		platform,
-	})
+	panel.webview.postMessage(data)
 }
 
 export function activate(ctx)

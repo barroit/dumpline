@@ -3,6 +3,8 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
+import wcwidth from 'wcwidth'
+
 import { cfg_read, cfg_write_p } from './config.js'
 import line_style from './line.css'
 
@@ -27,8 +29,8 @@ let binary
 let blob
 let complete
 
-let line_height_defined = 0
-let line_number_color_defined = 0
+let line_height_fixed = 0
+let line_number_color_fixed = 0
 
 function info(str)
 {
@@ -71,15 +73,15 @@ function line_height_calc(h, scale)
 	return h < LINE_HEIGHT_MIN ? LINE_HEIGHT_MIN : h
 }
 
-function define_line_number_color(root, styles)
+function fix_line_number_color(root, styles)
 {
 	const fg = css_prop(styles, '--vscode-editorLineNumber-foreground')
 
 	root.style.setProperty('--39-line-number-color', fg)
-	line_number_color_defined = 1
+	line_number_color_fixed = 1
 }
 
-function define_line_height(config, root, styles)
+function fix_line_height(config, root, styles)
 {
 	const font_size = css_prop(styles, '--vscode-editor-font-size')
 	let line_height = cfg_read(config, 'editor', 'lineHeight')
@@ -90,7 +92,30 @@ function define_line_height(config, root, styles)
 
 	cfg_write_p(config, 'editor', 'lineHeight', line_height)
 	root.style.setProperty('--39-line-height', `${ line_height }px`)
-	line_height_defined = 1
+	line_height_fixed = 1
+}
+
+function tabspan(len, tabstop)
+{
+	return -len & (tabstop - 1) || tabstop
+}
+
+function tab_to_space(line)
+{
+	const cols = line.split('\t')
+	let str = ''
+	let i
+
+	for (i = 0; i < cols.length - 1; i++) {
+		const col = cols[i]
+		const len = wcwidth(col)
+		const pad = tabspan(len, ctx.tabstop)
+
+		str += col + ' '.repeat(pad)
+	}
+
+	str += cols[i]
+	return str
 }
 
 function parse_text(text, styles)
@@ -119,7 +144,7 @@ function parse_text(text, styles)
 			continue
 		}
 
-		san.textContent = line
+		san.textContent = tab_to_space(line)
 		out += '<div>' +
 			 `<span style="color: ${ foreground }">` +
 			    san.innerHTML +
@@ -242,10 +267,10 @@ async function image_dump(event)
 	const root = document.documentElement
 	const styles = getComputedStyle(canvas)
 
-	if (!line_height_defined)
-		define_line_height(ctx.config, root, styles)
-	if (!line_number_color_defined)
-		define_line_number_color(root, styles)
+	if (!line_height_fixed)
+		fix_line_height(ctx.config, root, styles)
+	if (!line_number_color_fixed)
+		fix_line_number_color(root, styles)
 
 	canvas.innerHTML = clipboard_as_html(event.clipboardData)
 

@@ -43,13 +43,9 @@
                "type": "string"
             },
             "39dump.trimTail": {
-               "default": "enabled",
+               "default": true,
                "description": "Drop trailing newline",
-               "enum": [
-                  "disabled",
-                  "enabled"
-               ],
-               "type": "string"
+               "type": "boolean"
             }
          }
       },
@@ -65,6 +61,7 @@
    },
    "devDependencies": {
       "@vscode/vsce": "^3.6.0",
-      "esbuild": "^0.25.9"
+      "esbuild": "^0.25.9",
+      "wcwidth": "^1.0.1"
    }
 }
