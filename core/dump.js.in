@@ -313,7 +313,8 @@ async function image_dump(event)
 	if (enabled(ctx.config, '39dump', 'trimTail'))
 		trim_tail(codebox)
 
-	if (enabled(ctx.config, '39dump', 'padHead'))
+	if (codebox.firstElementChild &&
+	    enabled(ctx.config, '39dump', 'padHead'))
 		pad_head(codebox)
 
 	codebox.id = 'codebox'
