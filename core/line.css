@@ -10,7 +10,3 @@
 
 	color: var(--39-line-number-color);
 }
-
-#codebox > div.pad > span::before {
-	content: attr(data-padding);
-}

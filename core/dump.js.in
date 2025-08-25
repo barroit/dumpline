@@ -261,10 +261,11 @@ function pad_head(box)
 {
 	const pad = calc_pad(ctx.head, ctx.block.start.character)
 	const div = box.firstChild
-	const span = div.firstChild
 
-	div.classList.add('pad')
-	span.dataset.padding = ' '.repeat(pad)
+	const span = div.firstChild
+	const prefix = ' '.repeat(pad)
+
+	span.textContent = prefix + span.textContent
 }
 
 async function image_render(event, done)
