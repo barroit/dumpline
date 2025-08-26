@@ -51,6 +51,11 @@
                "default": true,
                "description": "Match first line offset with editor",
                "type": "boolean"
+            },
+            "39dump.dropIndent": {
+               "default": false,
+               "description": "Drop extra indent column",
+               "type": "boolean"
             }
          }
       },

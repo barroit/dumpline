@@ -192,20 +192,42 @@ function empty_line()
 	return div
 }
 
+function indent_of(node)
+{
+	const child = node.firstElementChild
+	const matches = child.textContent.match(/^ */)
+
+	return matches[0].length
+}
+
 function canonicalize_node(box)
 {
 	let next = box.firstElementChild
 	const alt = empty_line()
+	let indent = -1 >>> 0
 
 	do {
-		if (next.tagName != 'BR' && next.firstElementChild)
+		if (next.tagName != 'BR' && next.firstElementChild) {
+			const len = indent_of(next)
+
+			if (next == box.firstElementChild)
+				next.dataset.indent = len
+			else if (indent > len)
+				indent = len
+
 			continue
+		}
 
 		const clone = alt.cloneNode(true)
 
 		box.replaceChild(clone, next)
 		next = clone
 	} while (next = next.nextElementSibling)
+
+	if (indent == -1 >>> 0)
+		box.dataset.indent = 0
+	else
+		box.dataset.indent = indent
 }
 
 function setup_line_number(box)
@@ -266,6 +288,23 @@ function pad_head(box)
 	const prefix = ' '.repeat(pad)
 
 	span.textContent = prefix + span.textContent
+
+	return pad
+}
+
+function drop_indent(box)
+{
+	const drop = Number(box.dataset.indent)
+	let next = box.firstElementChild
+
+	do {
+		if (next.dataset.empty != undefined)
+			continue
+
+		const span = next.firstChild
+
+		span.textContent = span.textContent.slice(drop)
+	} while (next = next.nextElementSibling)
 }
 
 async function image_render(event, done)
@@ -313,9 +352,21 @@ async function image_dump(event)
 	if (enabled(ctx.config, '39dump', 'trimTail'))
 		trim_tail(codebox)
 
+	const child = codebox.firstElementChild
+	let indent = indent_of(child)
+
 	if (codebox.firstElementChild &&
-	    enabled(ctx.config, '39dump', 'padHead'))
-		pad_head(codebox)
+	    enabled(ctx.config, '39dump', 'padHead')) {
+		indent += pad_head(codebox)
+	}
+
+	if (codebox.dataset.indent > indent)
+		codebox.dataset.indent = indent
+
+	if (child && codebox.dataset.indent != '0' &&
+	    enabled(ctx.config, '39dump', 'dropIndent')) {
+		drop_indent(codebox)
+	}
 
 	codebox.id = 'codebox'
 
