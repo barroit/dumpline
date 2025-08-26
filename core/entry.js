@@ -78,7 +78,7 @@ function save_image(binary)
 {
 	const buf = Buffer.from(binary)
 
-	writeFileSync(`${ tmp }/tmp.png`, buf)
+	writeFileSync(`${ tmp }/latest.png`, buf)
 }
 
 function message_handler(event)
