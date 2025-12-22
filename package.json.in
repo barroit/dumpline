@@ -1,0 +1,44 @@
+dnl SPDX-License-Identifier: GPL-3.0-or-later
+dnl
+{
+   "name": "dumpline",
+   "type": "module",
+   "version": "0.2.0",
+   "license": "GPL-3.0-or-later",
+   "main": "build/entry.js",
+   "engines": {
+      "vscode": "^1.74.0"
+   },
+   "devDependencies": {
+      "@slimio/wcwidth": "^1.0.0",
+      "pngjs": "^7.0.0"
+   },
+   "contributes": {
+      "configuration": {
+         "type": "object",
+         "properties": {
+include(`package/config.json')dnl
+         }
+      },
+      "commands": [
+include(`package/cmd.json')dnl
+      ],
+      "menus": {
+include(`package/menu.json')dnl
+      },
+      "submenus": [
+include(`package/submenu.json')dnl
+      ]
+   },
+   "publisher": "barroit",
+   "displayName": "Dumpline",
+   "description": "Dumping selected lines into image.",
+   "icon": "image/negi.png",
+   "categories": [
+      "Other"
+   ],
+   "repository": {
+      "type": "git",
+      "url": "git+ssh://git@github.com:barroit/dumpline.git"
+   }
+}

@@ -1,0 +1,29 @@
+dnl SPDX-License-Identifier: GPL-3.0-or-later
+dnl
+"dumpline.no-lineno": {
+   "description": "Disable line number",
+   "type": "boolean",
+   "default": false
+},
+"dumpline.no-pad": {
+   "description": "Do not Pad first line with whitespace if selection dnl
+does not start with entire line. This ensures the selected characters dnl
+are positioned exactly as they appear in editor.",
+   "type": "boolean",
+   "default": false
+},
+"dumpline.no-indent": {
+   "description": "Drop extra indentation column",
+   "type": "boolean",
+   "default": true
+},
+"dumpline.trim": {
+   "description": "Trim leading / trailing empty lines",
+   "type": "string",
+   "enum": [
+      "leading",
+      "trailing",
+      "both"
+   ],
+   "default": "trailing"
+}

@@ -1,0 +1,19 @@
+dnl SPDX-License-Identifier: GPL-3.0-or-later
+dnl
+"editor/context": [
+   {
+      "submenu": "dumpline",
+      "group": "9_dumpline",
+      "when": "editorHasSelection && !editorHasMultipleSelections"
+   }
+],
+"dumpline": [
+   {
+      "command": "dumpline.multiple",
+      "when": "editorHasSelection && !editorHasMultipleSelections"
+   },
+   {
+      "command": "dumpline.single",
+      "when": "editorHasSelection && !editorHasMultipleSelections"
+   }
+]

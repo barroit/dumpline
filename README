@@ -1,5 +1,7 @@
 dumpline
 ========
 
-VS Code extension for dumping selected text to image. Other snapshot extensions
-just suck like hell, so I made this.
+This repo tracks source code of dumpline. It's a vscode extension, for dumping
+selected line into image.
+
+image/negi.png is licensed under LicenseRef-MDM-2.1.
