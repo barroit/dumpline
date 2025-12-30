@@ -3,3 +3,6 @@
 /build
 /.tmp-*
 /package.json
+
+/helper.patch/option.js
+/helper.patch/panel.js

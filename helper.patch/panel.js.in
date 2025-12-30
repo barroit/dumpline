@@ -1,0 +1,42 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/*
+ * Copyright 2025 Jiamu Sun <barroit@linux.com>
+ */
+
+import {
+	vsc_webview_init,
+	vsc_tab_group,
+	vsc_view_column,
+	vsc_uri,
+} from '../helper/vsc.js'
+
+function gen_panel_html(webview, prefix)
+{
+	return `
+include([[build/index.html]])dnl
+	`
+}
+
+export function panel_init(ctx, mesg_cb, disp_cb)
+{
+	const view_opt = {
+		viewColumn: vsc_view_column.Beside,
+		preserveFocus: true,
+	}
+	const panel_opt = {
+		enableScripts: true,
+		retainContextWhenHidden: true,
+	}
+
+	const panel = vsc_webview_init(NAME, '39dump', view_opt, panel_opt)
+	const webview = panel.webview
+	const prefix = ctx.binary.uri
+
+	webview.html = gen_panel_html(webview, prefix)
+	webview.onDidReceiveMessage(mesg_cb, ctx, ctx.cleanup)
+
+	panel.onDidDispose(disp_cb, ctx, ctx.cleanup)
+	panel.iconPath = vsc_uri.joinPath(prefix, 'image', 'negi.svg')
+
+	return panel
+}
