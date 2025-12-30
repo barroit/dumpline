@@ -3,6 +3,9 @@
 **/*
 
 !LICENSES/**
-!build/entry.js
 !image/**
 !README
+
+!build/entry.js
+!build/style.css
+!build/index.js

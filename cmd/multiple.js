@@ -15,23 +15,18 @@ const cp_rich_cmd = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
 
 let panel
 
-function map_ctx(editor, ctx_in)
+function patch_ctx(ctx, editor)
 {
 	const select = editor.selection
-	const ctx = {
-		...ctx_in,
-		platform,
 
-		begin_row: select.start.line,
-		begin_col: select.start.character,
+	ctx.platform = platform
+	ctx.tabstop = editor.options.tabSize
 
-		end_row: select.end.line,
-		end_col: select.end.character,
+	ctx.begin_row = select.start.line
+	ctx.begin_col = select.start.character
 
-		tabstop: editor.options.tabSize,
-	}
-
-	return ctx
+	ctx.end_row = select.end.line
+	ctx.end_col = select.end.character
 }
 
 function dump_binary()
@@ -69,11 +64,10 @@ export async function exec(editor)
 	else
 		panel = panel_init(this, recv_mesg, reset_panel)
 
-	const opt = this.fetch_config()
+	const ctx = this.fetch_config()
 
-	opt_ensure_valid(opt)
-
-	const ctx = map_ctx(editor, opt)
+	opt_ensure_valid(ctx)
+	patch_ctx(ctx, editor)
 
 	await vsc_exec_cmd(cp_rich_cmd)
 	panel.webview.postMessage(ctx)

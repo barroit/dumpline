@@ -3,6 +3,9 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
+import crypto from 'node:crypto'
+import { pathToFileURL as path_to_url } from 'node:url'
+
 import {
 	vsc_webview_init,
 	vsc_tab_group,
@@ -10,10 +13,21 @@ import {
 	vsc_uri,
 } from '../helper/vsc.js'
 
-function gen_panel_html(webview, prefix)
+function gen_panel_html(webview, prefix_in)
 {
+	const prefix = vsc_uri.joinPath(prefix_in, 'build')
+
+	const stylesheet_uri = vsc_uri.joinPath(prefix, 'panel.css')
+	const stylesheet = webview.asWebviewUri(stylesheet_uri)
+
+	const script_uri = vsc_uri.joinPath(prefix, 'panel.js')
+	const script = webview.asWebviewUri(script_uri)
+
+	const rand = crypto.randomBytes(16)
+	const nonce = rand.toString('base64')
+
 	return `
-include([[build/index.html]])dnl
+include([[helper.patch/panel.html]])dnl
 	`
 }
 
