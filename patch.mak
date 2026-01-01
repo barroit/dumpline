@@ -23,6 +23,10 @@ script-y  := $(prefix)/panel.js
 
 prebundle := $(modules-y) $(helper-y)
 
+package-in += $(image-prefix)/negi.png
+helper-in += $(image-prefix)/negi.svg
+panel-in += $(wildcard $(image-prefix)/*.svg)
+
 $(modules-y): $(module-prefix)/%/package.json:
 	$(npm) $*
 	touch $(package).in
@@ -36,7 +40,7 @@ $(helper-y): %: %.in $(panel-y)
 prepackage := $(panel-y) $(stylesheet-y)
 bundle-y   += $(script-y)
 
-$(script-y)1: $(script-in) $(input) $(modules-y) | $(prefix)
+$(script-y)1: $(script-in) $(modules-y) | $(prefix)
 	$(esbuild) --sourcemap=inline --outfile=$@ $<
 
 $(stylesheet-y): $(panel-in) | $(prefix)

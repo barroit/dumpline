@@ -1,0 +1,28 @@
+dnl SPDX-License-Identifier: GPL-3.0-or-later
+dnl
+dnl Copyright 2025 Jiamu Sun <barroit@linux.com>
+dnl
+divert(-1)
+
+define([[ICON_SIZE]], [[16px]])
+
+define([[BUTTON]], [[dnl
+<button id='$1_btn'
+        class='p-1 rounded-sm transition duration-300 hover:-translate-y-px
+               shadow-[0_1px_2px_rgba(0,0,0,0.25)]
+               hover:shadow-[0_4px_12px_rgba(0,0,0,0.35)]
+               not-data-[rmb]:active:translate-y-0
+               not-data-[rmb]:active:shadow-sm
+               focus-visible:ring-1 focus-visible:outline-none
+               focus-visible:ring-(--vscode-focusBorder)
+               text-(--vscode-sideBar-foreground)
+               bg-(--vscode-tab-activeBackground)'>
+include([[image/$1.svg]])dnl
+</button>
+]])
+
+divert(0)dnl
+
+BUTTON([[copy_file]])
+BUTTON([[open_dir]])
+BUTTON([[open_file]])

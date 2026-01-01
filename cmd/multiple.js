@@ -5,7 +5,7 @@
 
 import { platform } from 'node:process'
 
-import { die } from '../helper/mesg.js'
+import { error, warn, info } from '../helper/mesg.js'
 import { vsc_range, vsc_env, vsc_exec_cmd } from '../helper/vsc.js'
 
 import { opt_ensure_valid } from '../helper.patch/option.js'
@@ -15,11 +15,12 @@ const cp_rich_cmd = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
 
 let panel
 
-function patch_ctx(ctx, editor)
+function patch_ctx(ctx, editor, editor_config)
 {
 	const select = editor.selection
 
-	ctx.platform = platform
+	ctx.line_height = editor_config.lineHeight
+	ctx.line_height_ratio = platform == 'darwin' ? 1.5 : 1.35
 	ctx.tabstop = editor.options.tabSize
 
 	ctx.begin_row = select.start.line
@@ -64,10 +65,11 @@ export async function exec(editor)
 	else
 		panel = panel_init(this, recv_mesg, reset_panel)
 
-	const ctx = this.fetch_config()
+	const ctx = this.fetch_config('dumpline')
+	const editor_config = this.fetch_config('editor')
 
 	opt_ensure_valid(ctx)
-	patch_ctx(ctx, editor)
+	patch_ctx(ctx, editor, editor_config)
 
 	await vsc_exec_cmd(cp_rich_cmd)
 	panel.webview.postMessage(ctx)

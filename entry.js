@@ -14,11 +14,6 @@ const cmds = {
 	'single':   [ import('./cmd/single.js'),   vsc_add_editor_cmd ],
 }
 
-function fetch_config()
-{
-	return vsc_fetch_config('dumpline')
-}
-
 export async function activate(ctx)
 {
 	for (const id of Object.keys(cmds)) {
@@ -28,7 +23,7 @@ export async function activate(ctx)
 		const cmd_ctx = vsc_map_ctx(ctx)
 		const exec = cb(`dumpline.${id}`, module.exec, cmd_ctx)
 
-		cmd_ctx.fetch_config = fetch_config
+		cmd_ctx.fetch_config = vsc_fetch_config
 		ctx.subscriptions.push(exec)
 	}
 }
