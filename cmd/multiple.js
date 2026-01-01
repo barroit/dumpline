@@ -18,16 +18,22 @@ let panel
 function patch_ctx(ctx, editor, editor_config)
 {
 	const select = editor.selection
-
-	ctx.line_height = editor_config.lineHeight
-	ctx.line_height_ratio = platform == 'darwin' ? 1.5 : 1.35
-	ctx.tabstop = editor.options.tabSize
+	const doc = editor.document
 
 	ctx.begin_row = select.start.line
 	ctx.begin_col = select.start.character
 
 	ctx.end_row = select.end.line
 	ctx.end_col = select.end.character
+
+	const head_line = doc.lineAt(ctx.begin_row)
+
+	ctx.head_line = head_line.text
+
+	ctx.line_height = editor_config.lineHeight
+	ctx.line_height_ratio = platform == 'darwin' ? 1.5 : 1.35
+
+	ctx.tabstop = editor.options.tabSize
 }
 
 function dump_binary()
@@ -43,23 +49,34 @@ function reset_panel()
 function recv_mesg(event)
 {
 	const [ name, data ] = event
+	let fn
 
 	switch (name) {
-	case 'open':
-		cb = vsc_env.openExternal
+	case 'error':
+		fn = error
 		break
+
+	case 'warn':
+		fn = warn
+		break
+
+	case 'info':
+		fn = info
+		break
+
+	case 'open':
+		fn = vsc_env.openExternal
+		break
+
 	case 'dump':
-		cb = dump_binary
+		fn = dump_binary
 	}
 
-	cb(data)
+	fn(data)
 }
 
 export async function exec(editor)
 {
-	if (editor.selections.length > 1)
-		die("multiple selections aren't supported")
-
 	if (panel)
 		panel.reveal(panel.viewColumn, true)
 	else
