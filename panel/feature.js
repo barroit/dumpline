@@ -36,7 +36,7 @@ export function feat_setup_lineno(box, ctx)
 	do {
 		const idx = calc_digit_width(line)
 
-		next.dataset.number = `${pad[idx]}${line}`
+		next.dataset.lineno = `${pad[idx]}${line}`
 		line++
 	} while (next = next.nextElementSibling)
 

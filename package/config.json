@@ -26,4 +26,11 @@ are positioned exactly as they appear in editor.",
       "both"
    ],
    "default": "trailing"
+},
+"dumpline.tune": {
+   "type": "object",
+   "default": {
+      "max_chunk_size": 139,
+      "max_worker": 10
+   }
 }

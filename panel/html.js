@@ -17,9 +17,9 @@ function gen_box_style(style)
 		[ 'color',            '--vscode-editor-foreground'  ],
 		[ 'background-color', '--vscode-editor-background'  ],
 		[ 'font-family',      '--vscode-editor-font-family' ],
-		[ 'font_weight',      '--vscode-editor-font-weight' ],
-		[ 'fone_size',        '--vscode-editor-font-size'   ],
-		[ 'line_height',      '--39-line-height'            ],
+		[ 'font-weight',      '--vscode-editor-font-weight' ],
+		[ 'fone-size',        '--vscode-editor-font-size'   ],
+		[ 'line-height',      '--39-line-height'            ],
 		[ 'white-space',      '--39-whitespace'             ],
 	]
 
@@ -53,48 +53,78 @@ function expand_tabs(str, tabstop)
 	return out.join('')
 }
 
-function gen_rich_text(plain, style)
+function find_longest_with(plain, tabstop, cb, ...args)
 {
-	const box_style = gen_box_style(style)
-	const tabstop = style_fetch(style, '--39-tabstop')
-	const out = []
-
 	const lines = plain.split('\n')
-	const sanitizer = document.createElement('div')
-	const foreground = style_fetch(style, '--vscode-editor-foreground')
+	let longest = 0
+	let current
 
-	out.push(`<div style="${box_style}">`)
+	for (current = 0; current < lines.length; current++) {
+		if (lines[current] != '')
+			lines[current] = expand_tabs(lines[current], tabstop)
 
-	for (const line of lines) {
-		if (line == '') {
-			out.push('<br>')
-			continue
-		}
+		if (lines[current].length > lines[longest].length)
+			longest = current
 
-		sanitizer.textContent = expand_tabs(line, tabstop)
-
-		out.push('<div>' +
-			   `<span style="color: ${foreground}">` +
-			      sanitizer.innerHTML +
-			   '</span>' +
-			 '</div>')
+		if (cb)
+			cb(lines[current], ...args)
 	}
 
-	out.push('</div>')
-	return out.join('')
+	return longest
+}
+
+function gen_fake_block(line, buf, sanitizer, block_begin, block_end)
+{
+	if (line == '') {
+		buf.push('<br>')
+
+	} else {
+		sanitizer.textContent = line
+		buf.push(block_begin + sanitizer.innerHTML + block_end)
+	}
+}
+
+function fake_resolve_str(plain, style, tabstop)
+{
+	const box_style = gen_box_style(style)
+	const buf = []
+
+	const sanitizer = document.createElement('div')
+	const foreground = style_fetch(style, '--vscode-editor-foreground')
+	const block_begin = `<div><span style="color: ${foreground}">`
+	const block_end = '</span></div>'
+
+	buf.push(`<div style="${box_style}">`)
+
+	const longest = find_longest_with(plain, tabstop, gen_fake_block, buf,
+					  sanitizer, block_begin, block_end)
+
+	buf.push('</div>')
+
+	return {
+		html: buf.join(''),
+		longest,
+	}
 }
 
 export function html_resolve_str(clipboard, style)
 {
+	trace_start('html_resolve_str')
+
 	const html = clipboard.getData('text/html')
-
-	if (html)
-		return html
-
 	const plain = clipboard.getData('text/plain')
-	const fake = gen_rich_text(plain, style)
+	const tabstop = style_fetch(style, '--39-tabstop')
 
-	return fake
+	if (!html)
+		return fake_resolve_str(plain, style, tabstop)
+
+	const longest = find_longest_with(plain, tabstop)
+
+	trace_stop('html_resolve_str')
+	return {
+		html,
+		longest,
+	}
 }
 
 export function html_parse_str(text)

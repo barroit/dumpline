@@ -33,7 +33,7 @@ export function opt_ensure_valid(opt)
 		const type = typeof input
 
 		if (type != opt_type ||
-		    opt_vals && !opt_vals.contains(input))
+		    opt_vals && !opt_vals.includes(input))
 			opt[key] = opt_fb
 	}
 }
