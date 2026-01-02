@@ -5,10 +5,22 @@
 
 import wcwidth from 'wcwidth'
 
-import { style_fetch } from './style.js'
+import { style_resolve } from './style.js'
 import { trace_start, trace_stop } from './trace.js'
 
 import { calc_tabspan } from '../helper.patch/calc.js'
+
+const lf_div = document.createElement('div')
+const lf_span = document.createElement('span')
+const lf_br = document.createElement('br')
+const lf_node = lf_div
+
+lf_span.style.visibility = 'hidden'
+TEXT_OF(lf_span) = '\u200b'
+
+lf_div.appendChild(lf_span)
+lf_div.appendChild(lf_br)
+lf_div.dataset.empty = ''
 
 function gen_box_style(style)
 {
@@ -18,13 +30,13 @@ function gen_box_style(style)
 		[ 'background-color', '--vscode-editor-background'  ],
 		[ 'font-family',      '--vscode-editor-font-family' ],
 		[ 'font-weight',      '--vscode-editor-font-weight' ],
-		[ 'fone-size',        '--vscode-editor-font-size'   ],
+		[ 'font-size',        '--vscode-editor-font-size'   ],
 		[ 'line-height',      '--39-line-height'            ],
 		[ 'white-space',      '--39-whitespace'             ],
 	]
 
 	for (const [ name, key ] of map) {
-		const val = style_fetch(style, key)
+		const val = style_resolve(style, key)
 		const line = `${name}: ${val}`
 
 		out.push(line)
@@ -53,7 +65,7 @@ function expand_tabs(str, tabstop)
 	return out.join('')
 }
 
-function find_longest_with(plain, tabstop, cb, ...args)
+function find_width_base_with(plain, tabstop, cb, ...args)
 {
 	const lines = plain.split('\n')
 	let longest = 0
@@ -79,7 +91,7 @@ function gen_fake_block(line, buf, sanitizer, block_begin, block_end)
 		buf.push('<br>')
 
 	} else {
-		sanitizer.textContent = line
+		TEXT_OF(sanitizer) = line
 		buf.push(block_begin + sanitizer.innerHTML + block_end)
 	}
 }
@@ -90,41 +102,41 @@ function fake_resolve_str(plain, style, tabstop)
 	const buf = []
 
 	const sanitizer = document.createElement('div')
-	const foreground = style_fetch(style, '--vscode-editor-foreground')
+	const foreground = style_resolve(style, '--vscode-editor-foreground')
 	const block_begin = `<div><span style="color: ${foreground}">`
 	const block_end = '</span></div>'
 
 	buf.push(`<div style="${box_style}">`)
 
-	const longest = find_longest_with(plain, tabstop, gen_fake_block, buf,
-					  sanitizer, block_begin, block_end)
+	const width_base = find_width_base_with(plain, tabstop,
+						gen_fake_block,
+						buf, sanitizer,
+						block_begin, block_end)
 
 	buf.push('</div>')
 
-	return {
-		html: buf.join(''),
-		longest,
-	}
+	const html = buf.join('')
+
+	return [ html, width_base ]
 }
 
 export function html_resolve_str(clipboard, style)
 {
 	trace_start('html_resolve_str')
 
-	const html = clipboard.getData('text/html')
+	let html = clipboard.getData('text/html')
+	let width_base
+
 	const plain = clipboard.getData('text/plain')
-	const tabstop = style_fetch(style, '--39-tabstop')
+	const tabstop = style_resolve(style, '--39-tabstop')
 
 	if (!html)
-		return fake_resolve_str(plain, style, tabstop)
-
-	const longest = find_longest_with(plain, tabstop)
+		[ html, width_base ] = fake_resolve_str(plain, style, tabstop)
+	else
+		width_base = find_width_base_with(plain, tabstop)
 
 	trace_stop('html_resolve_str')
-	return {
-		html,
-		longest,
-	}
+	return [ html, width_base ]
 }
 
 export function html_parse_str(text)
@@ -135,70 +147,53 @@ export function html_parse_str(text)
 
 	canvas.innerHTML = text
 
-	const box = canvas.content.firstChild
+	const box = CHILD_OF(canvas.content)
 
 	trace_stop('html_parse_str')
 	return box
 }
 
-function gen_newline_node()
-{
-	const div = document.createElement('div')
-	const span = document.createElement('span')
-	const br = document.createElement('br')
-
-	span.style.visibility = 'hidden'
-	span.textContent = '\u200b'
-
-	div.appendChild(span)
-	div.appendChild(br)
-	div.dataset.empty = ''
-
-	return div
-}
-
 function count_indent_width(next)
 {
-	const span = next.firstChild
-	const token = span.textContent
+	const token = CHILD_OF(next)
+	const str = TEXT_OF(token)
 	let cnt = 0
 
-	while (token[cnt] == ' ')
+	while (str[cnt] == ' ')
 		cnt++
 
 	return cnt
 }
 
-export function html_canonicalize(box)
+export function html_canonicalize(tree)
 {
 	trace_start('html_canonicalize')
 
-	const newline = gen_newline_node()
-	let next = box.firstChild
+	let next = CHILD_OF(tree)
 	let indent = -1 >>> 0
 
 	do {
-		if (next.tagName == 'BR' || !next.firstChild) {
-			const clone = newline.cloneNode(true)
+		if (next.tagName == 'BR' || !CHILD_OF(next)) {
+			const lf = lf_node.cloneNode(true)
 
-			box.replaceChild(clone, next)
-			next = clone
+			tree.replaceChild(lf, next)
+			next = lf
 
 		} else if (indent) {
 			const width = count_indent_width(next)
 
-			if (next == box.firstChild)
+			if (next == CHILD_OF(tree))
 				next.dataset.indent = width
 			else if (indent > width)
 				indent = width
 		}
 
-	} while (next = next.nextElementSibling)
+	} while (next = NEXT_CHILD_OF(next))
 
 	if (indent == -1 >>> 0)
-		box.dataset.indent = 0
+		tree.dataset.indent = 0
 	else
-		box.dataset.indent = indent
+		tree.dataset.indent = indent
 
 	trace_stop('html_canonicalize')
 }

@@ -3,7 +3,7 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
-export function style_fetch(style, name)
+export function style_resolve(style, name)
 {
 	return style.getPropertyValue(name)
 }
@@ -24,7 +24,7 @@ function calc_line_height(base, min, ratio, scale)
 
 function init_line_height(root, style, ctx)
 {
-	const scale_str = style_fetch(style, '--vscode-editor-font-size')
+	const scale_str = style_resolve(style, '--vscode-editor-font-size')
 	const scale = parseInt(scale_str)
 
 	const ratio = ctx.line_height_ratio
@@ -40,7 +40,7 @@ function init_line_height(root, style, ctx)
 
 function init_lineno_color(root, style)
 {
-	const fg = style_fetch(style, '--vscode-editorLineNumber-foreground')
+	const fg = style_resolve(style, '--vscode-editorLineNumber-foreground')
 
 	root.style.setProperty('--39-lineno-color', fg)
 }

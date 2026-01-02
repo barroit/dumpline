@@ -10,8 +10,8 @@ packages := @slimio/wcwidth pngjs tailwindcss
 modules-in := $(addprefix $(module-prefix)/,$(packages))
 modules-y  := $(addsuffix /package.json,$(modules))
 
-helper-in := $(wildcard $(patch-prefix)/*.js.in)
-helper-y  := $(helper-in:%.in=%)
+helper-gen-in := $(wildcard $(patch-prefix)/*.js.in)
+helper-gen-y  := $(helper-gen-in:%.in=%)
 
 panel-in := $(wildcard $(panel-prefix)/*.html)
 panel-y  := $(patch-prefix)/panel.html
@@ -21,10 +21,15 @@ stylesheet-y := $(prefix)/panel.css
 script-in := $(wildcard $(panel-prefix)/*.js)
 script-y  := $(prefix)/panel.js
 
-prebundle := $(modules-y) $(helper-y)
+script-gen-in := $(wildcard $(panel-prefix)/*.js.in)
+script-gen-y  := $(script-gen-in:%.in=%)
+
+script-helper-in := $(wildcard $(panel-prefix)/*.m4)
+
+prebundle := $(modules-y) $(helper-gen-y)
 
 package-in += $(image-prefix)/negi.png
-helper-in += $(image-prefix)/negi.svg
+helper-gen-in += $(image-prefix)/negi.svg
 panel-in += $(wildcard $(image-prefix)/*.svg)
 
 $(modules-y): $(module-prefix)/%/package.json:
@@ -34,13 +39,16 @@ $(modules-y): $(module-prefix)/%/package.json:
 $(panel-y): $(panel-in)
 	$(m4) $< >$@
 
-$(helper-y): %: %.in $(panel-y)
+$(helper-gen-y): %: %.in $(panel-y)
 	$(m4) $< >$@
 
 prepackage := $(panel-y) $(stylesheet-y)
 bundle-y   += $(script-y)
 
-$(script-y)1: $(script-in) $(modules-y) | $(prefix)
+$(script-gen-y): %: %.in $(script-helper-in)
+	$(m4) -D__filename__=$(notdir $<) $(script-helper-in) $< >$@
+
+$(script-y)1: $(script-in) $(script-gen-y) $(modules-y) | $(prefix)
 	$(esbuild) --sourcemap=inline --outfile=$@ $<
 
 $(stylesheet-y): $(panel-in) | $(prefix)
@@ -50,5 +58,5 @@ clean-prebundle := clean-prebundle
 
 clean-prebundle:
 	rm -f $(script-y)*
-	rm -f $(helper-y)
+	rm -f $(helper-gen-y)
 	rm -f $(prepackage)

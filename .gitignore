@@ -7,3 +7,7 @@
 /helper.patch/option.js
 /helper.patch/panel.js
 /helper.patch/panel.html
+
+/panel/chunk.js
+/panel/feature.js
+/panel/html.js

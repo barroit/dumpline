@@ -1,0 +1,101 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/*
+ * Copyright 2026 Jiamu Sun <barroit@linux.com>
+ */
+
+const svg_ns = 'http://www.w3.org/2000/svg'
+const chunk_svg = document.createElementNS(svg_ns, 'svg')
+const chunk_foreign_object = document.createElementNS(svg_ns, 'foreignObject')
+const chunk_node = chunk_svg
+
+chunk_foreign_object.setAttribute('width', '100%')
+chunk_foreign_object.setAttribute('height', '100%')
+
+chunk_svg.setAttribute('xmlns', svg_ns)
+chunk_svg.setAttribute('width', '100%')
+chunk_svg.setAttribute('height', '100%')
+chunk_svg.appendChild(chunk_foreign_object)
+
+function fill_chunk(chunk, lines, arr_cap)
+{
+	const style_box = CHUNK_DATA_OF(chunk)
+	const arr = new Array(arr_cap)
+	let i
+
+	for (i = 0; i < arr_cap; i++)
+		arr[i] = lines[i]
+
+	style_box.append(...arr)
+}
+
+function update_chunk_width(chunk_live, sample_live)
+{
+	const sample = sample_live.cloneNode(true)
+	const chunk = chunk_live.cloneNode(true)
+
+	const style_box = CHUNK_DATA_OF(chunk)
+	const indent = Number(style_box.dataset.indent)
+
+	if (indent)
+		CHILD_TEXT_OF(sample) = CHILD_TEXT_OF(sample).slice(indent)
+
+	fill_chunk(chunk, [ sample ], 1)
+	chunk.style.visibility = 'hidden'
+	canvas.appendChild(chunk)
+
+	const rect = style_box.getBoundingClientRect()
+	const width = rect.width
+
+	canvas.removeChild(chunk)
+	chunk_live.setAttribute('width', width)
+}
+
+function update_chunk_height(chunk, nr_lines)
+{
+	const box = CHUNK_DATA_OF(chunk)
+	const line_height = parseInt(box.style.lineHeight)
+	const height = line_height * nr_lines
+
+	chunk.setAttribute('height', height)
+}
+
+function setup_chunk(chunk, chunk_size, tree, width_base)
+{
+	const style_box = tree.cloneNode(false)
+	const indent = style_box.dataset.indent
+
+	if (indent)
+		style_box.style.transform = `translateX(-${indent}ch)`
+
+	CHILD_OF(chunk).appendChild(style_box)
+
+	update_chunk_width(chunk, width_base)
+	update_chunk_height(chunk, chunk_size)
+}
+
+export function chunk_parse(tree, chunk_size, width_base_idx)
+{
+	const lines = tree.children
+	const chunk_tmpl = chunk_node.cloneNode(true)
+
+	let nr = lines.length
+	const ret = []
+
+	setup_chunk(chunk_tmpl, chunk_size, tree, lines[width_base_idx])
+
+	while (nr != 0) {
+		if (chunk_size > nr) {
+			chunk_size = nr
+			update_chunk_height(chunk_tmpl, nr)
+		}
+
+		const chunk = chunk_tmpl.cloneNode(true)
+
+		fill_chunk(chunk, lines, chunk_size)
+
+		ret.push(chunk)
+		nr -= chunk_size
+	}
+
+	return ret
+}

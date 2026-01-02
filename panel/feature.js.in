@@ -1,0 +1,127 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/*
+ * Copyright 2026 Jiamu Sun <barroit@linux.com>
+ */
+
+import wcwidth from 'wcwidth'
+
+import { trace_start, trace_stop } from './trace.js'
+
+import { calc_tabspan, calc_digit_width } from '../helper.patch/calc.js'
+
+function init_pad_map(max)
+{
+	const empty = Array(max + 1)
+	const initial = empty.fill(' ')
+
+	const filled = initial.map((s, i) => s.repeat(i))
+	const reversed = filled.reverse()
+
+	return reversed
+}
+
+function setup_lineno(tree, ctx)
+{
+	trace_start('__filename__:setup_lineno')
+
+	const start = ctx.begin_row + 1
+	const end = ctx.end_row + 1
+
+	let next = CHILD_OF(tree)
+	let line = start
+
+	const width = calc_digit_width(end)
+	const pad = init_pad_map(width)
+
+	do {
+		const idx = calc_digit_width(line)
+
+		next.dataset.lineno = `${pad[idx]}${line}`
+		line++
+	} while (next = NEXT_CHILD_OF(next))
+
+	trace_stop('__filename__:setup_lineno')
+}
+
+function trim_tail(tree)
+{
+	let next = LAST_CHILD_OF(tree)
+
+	do {
+		if (next.dataset.empty == undefined)
+			break
+
+		tree.removeChild(next)
+	} while (next = LAST_CHILD_OF(tree))
+}
+
+function trim_head(tree)
+{
+	let next = CHILD_OF(tree)
+
+	do {
+		if (next.dataset.empty == undefined)
+			break
+
+		tree.removeChild(next)
+	} while (next = CHILD_OF(tree))
+}
+
+function calc_pad(line, pad_end, tabstop)
+{
+	let len = 0
+	let i
+
+	for (i = 0; pad_end > 0; i++, pad_end--) {
+		if (line[i] != '\t')
+			len += wcwidth(line[i])
+		else
+			len += calc_tabspan(len, tabstop)
+	}
+
+	return len
+}
+
+function pad_head(tree, ctx)
+{
+	const width = calc_pad(ctx.head_line, ctx.begin_col, ctx.tabstop)
+	const pad = ' '.repeat(width)
+
+	const head = CHILD_OF(tree)
+	const token = CHILD_OF(head)
+
+	TEXT_OF(token) = pad + TEXT_OF(token)
+	return width
+}
+
+export function feature_apply(tree, feature)
+{
+	if (feature['no-lineno'])
+		tree.dataset['no-lineno'] = ''
+	else
+		setup_lineno(tree, feature)
+
+	if (feature['trim'] == 'trailing')
+		trim_tail(tree)
+
+	if (feature['trim'] == 'leading')
+		trim_head(tree)
+
+	if (feature['trim'] == 'both') {
+		trim_tail(tree)
+		trim_head(tree)
+	}
+
+	const head = CHILD_OF(tree)
+	const body_indent = Number(tree.dataset.indent)
+	let head_indent = Number(head.dataset.indent)
+
+	if (!feature['no-pad'])
+		head_indent += pad_head(tree, feature)
+
+	if (body_indent > head_indent)
+		tree.dataset.indent = head_indent
+
+	if (!feature['no-indent'] || head_indent == 0)
+		delete tree.dataset.indent
+}
