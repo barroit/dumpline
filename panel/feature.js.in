@@ -3,7 +3,7 @@
  * Copyright 2026 Jiamu Sun <barroit@linux.com>
  */
 
-import wcwidth from 'wcwidth'
+import wcwidth from '@slimio/wcwidth'
 
 import { trace_start, trace_stop } from './trace.js'
 

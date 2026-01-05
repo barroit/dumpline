@@ -8,7 +8,7 @@ tailwindcss += --minify
 packages := @slimio/wcwidth pngjs tailwindcss
 
 modules-in := $(addprefix $(module-prefix)/,$(packages))
-modules-y  := $(addsuffix /package.json,$(modules))
+modules-y  := $(addsuffix /package.json,$(modules-in))
 
 helper-gen-in := $(wildcard $(patch-prefix)/*.js.in)
 helper-gen-y  := $(helper-gen-in:%.in=%)
@@ -34,7 +34,7 @@ panel-in += $(wildcard $(image-prefix)/*.svg)
 
 $(modules-y): $(module-prefix)/%/package.json:
 	$(npm) $*
-	touch $(package).in
+	touch $(package-y).in
 
 $(panel-y): $(panel-in)
 	$(m4) $< >$@
@@ -47,6 +47,7 @@ bundle-y   += $(script-y)
 
 $(script-gen-y): %: %.in $(script-helper-in)
 	$(m4) -D__filename__=$(notdir $<) $(script-helper-in) $< >$@
+	
 
 $(script-y)1: $(script-in) $(script-gen-y) $(modules-y) | $(prefix)
 	$(esbuild) --sourcemap=inline --outfile=$@ $<
