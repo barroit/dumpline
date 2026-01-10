@@ -1,74 +1,53 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-panel-prefix := panel
+npm-packages := @slimio/wcwidth pngjs tailwindcss
 
 tailwindcss ?= tailwindcss
 tailwindcss += --minify
 
-packages := @slimio/wcwidth pngjs tailwindcss
+panel-prefix := $(prefix)/panel
 
-modules-in := $(addprefix $(module-prefix)/,$(packages))
-modules-y  := $(addsuffix /package.json,$(modules-in))
+html-in   := $(wildcard panel/*.html)
+html-m4-y := $(addprefix $(syth-prefix)/,$(html-in))
+html-y    := $(panel-prefix)/index.html
 
-helper-gen-in := $(wildcard $(patch-prefix)/*.js.in)
-helper-gen-y  := $(helper-gen-in:%.in=%)
+$(html-m4-y): $(syth-prefix)/%: %
+	mkdir -p $(@D)
+	$(m4) $< >$@
 
-panel-in := $(wildcard $(panel-prefix)/*.html)
-panel-y  := $(patch-prefix)/panel.html
+$(html-y): $(prefix)/%: $(html-m4-y)
+	mkdir -p $(@D)
+	$(m4) $* >$@
 
-stylesheet-y := $(prefix)/panel.css
+packages-y := $(addprefix $(module-prefix)/,$(npm-packages))
+packages-y := $(addsuffix /$(package-y),$(packages-y))
 
-script-in := $(wildcard $(panel-prefix)/*.js)
-script-y  := $(prefix)/panel.js
-
-script-gen-in := $(wildcard $(panel-prefix)/*.js.in)
-script-gen-y  := $(script-gen-in:%.in=%)
-
-script-helper-in := $(wildcard $(panel-prefix)/*.m4)
-
-utf16-class-in := utf16_class
-utf16-class-y := $(prefix)/$(utf16-class-in)
-
-prebundle := $(modules-y) $(helper-gen-y)
-
-package-in += $(image-prefix)/negi.png
-helper-gen-in += $(image-prefix)/negi.svg
-panel-in += $(wildcard $(image-prefix)/*.svg)
-
-$(modules-y): $(module-prefix)/%/package.json:
+$(modules-y): $(module-prefix)/%/$(package-y):
 	$(npm) $*
 	touch $(package-y).in
 
-$(panel-y): $(panel-in)
-	$(m4) $< >$@
+panel-in   := panel/index.js $(wildcard helper.panel/*.js)
+panel-m4-y := $(addprefix $(syth-prefix)/,$(panel-in))
+panel-y    := $(panel-prefix)/index.js
 
-$(helper-gen-y): %: %.in $(panel-y)
-	$(m4) $< >$@
-
-prepackage := $(panel-y) $(stylesheet-y) $(utf16-class-y)
-bundle-y   += $(script-y)
-
-$(script-gen-y): %: %.in $(script-helper-in)
-	$(m4) -D__filename__=$(notdir $<) $(script-helper-in) $< >$@
-	
-
-$(script-y)1: $(script-in) $(script-gen-y) $(modules-y) | $(prefix)
+$(panel-y)1: $(panel-m4-y) $(modules-y)
+	mkdir -p $(@D)
 	$(esbuild) --sourcemap=inline --outfile=$@ $<
 
-$(stylesheet-y): $(panel-in) | $(prefix)
-	$(tailwindcss) --cwd $(panel-prefix) >$@
+css-in := $(wildcard panel/*.html)
+css-y  := $(panel-prefix)/index.css
 
-$(utf16-class-y):
-	$(script-prefix)/gen-char-class.py $@
+$(css-y): $(css-in)
+	mkdir -p $(@D)
+	$(tailwindcss) --cwd panel >$@
 
-clean-prebundle := clean-prebundle
+utf16-class-y := $(panel-prefix)/utf16_class
 
-clean-prebundle:
-	rm -f $(script-y)*
-	rm -f $(helper-gen-y)
-	rm -f $(prepackage)
+$(utf16-class-y): scripts/gen-char-class.py
+	$< $@
 
-distclean-prebundle := distclean-prebundle
+m4-in += $(panel-in)
+archive-in += $(css-y) $(utf16-class-y)
 
-distclean-prebundle:
-	rm -f $(utf16-class-y)
+bundle-y += $(panel-y)
+prem4    := $(html-y)

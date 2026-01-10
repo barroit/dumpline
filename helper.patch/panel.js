@@ -15,12 +15,12 @@ import {
 
 function gen_panel_html(webview, prefix_in)
 {
-	const prefix = vsc_uri.joinPath(prefix_in, 'build')
+	const prefix = vsc_uri.joinPath(prefix_in, 'build', 'panel')
 
-	const stylesheet_uri = vsc_uri.joinPath(prefix, 'panel.css')
+	const stylesheet_uri = vsc_uri.joinPath(prefix, 'index.css')
 	const stylesheet = webview.asWebviewUri(stylesheet_uri)
 
-	const script_uri = vsc_uri.joinPath(prefix, 'panel.js')
+	const script_uri = vsc_uri.joinPath(prefix, 'index.js')
 	const script = webview.asWebviewUri(script_uri)
 
 	const utf16_class_uri = vsc_uri.joinPath(prefix, 'utf16_class')
@@ -33,7 +33,7 @@ function gen_panel_html(webview, prefix_in)
 	const nonce = rand.toString('base64')
 
 	return `
-include([[helper.patch/panel.html]])dnl
+include(__build__/panel/index.html)dnl
 	`
 }
 

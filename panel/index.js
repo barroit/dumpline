@@ -3,16 +3,20 @@
  * Copyright 2025, 2026 Jiamu Sun <barroit@linux.com>
  */
 
-import btn from './btn.js'
-import { chunk_parse, chunk_group } from './chunk.js'
+import btn from '../helper.panel/btn.js'
+import { chunk_parse, chunk_group } from '../helper.panel/chunk.js'
 import {
 	feature_apply_lineno,
 	feature_apply_trim,
 	feature_apply_no_pad,
-} from './feature.js'
-import { html_resolve_str, html_parse_str, html_canonicalize } from './html.js'
-import { error, warn, info } from './mesg.js'
-import { style_init_root } from './style.js'
+} from '../helper.panel/feature.js'
+import {
+	html_resolve_str,
+	html_parse_str,
+	html_canonicalize,
+} from '../helper.panel/html.js'
+import { error, warn, info } from '../helper.panel/mesg.js'
+import { style_init_root } from '../helper.panel/style.js'
 
 const webview = acquireVsCodeApi()
 let ctx

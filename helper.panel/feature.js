@@ -2,12 +2,13 @@
 /*
  * Copyright 2026 Jiamu Sun <barroit@linux.com>
  */
+dnl
+include(helper.panel/node.m4)dnl
 
 import wcwidth from '@slimio/wcwidth'
 
+import { calc_tabspan, calc_digit_width } from './calc.js'
 import { trace_start, trace_stop } from './trace.js'
-
-import { calc_tabspan, calc_digit_width } from '../helper.patch/calc.js'
 
 function init_pad_map(max)
 {

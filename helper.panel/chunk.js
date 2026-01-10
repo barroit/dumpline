@@ -2,6 +2,8 @@
 /*
  * Copyright 2026 Jiamu Sun <barroit@linux.com>
  */
+dnl
+include(helper.panel/node.m4)dnl
 
 const svg_ns = 'http://www.w3.org/2000/svg'
 const chunk_svg = document.createElementNS(svg_ns, 'svg')

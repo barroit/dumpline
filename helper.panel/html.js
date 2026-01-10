@@ -2,14 +2,15 @@
 /*
  * Copyright 2026 Jiamu Sun <barroit@linux.com>
  */
+dnl
+include(helper.panel/node.m4)dnl
 
 import wcwidth from '@slimio/wcwidth'
 
+import { calc_tabspan } from './calc.js'
 import { style_resolve } from './style.js'
 import { trace_start, trace_stop } from './trace.js'
 import { utf16_class, utf16_class_su, utf16_width } from './utf16.js'
-
-import { calc_tabspan } from '../helper.patch/calc.js'
 
 const lf_div = document.createElement('div')
 const lf_span = document.createElement('span')

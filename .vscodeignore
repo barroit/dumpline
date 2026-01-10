@@ -7,6 +7,6 @@
 !README
 
 !build/entry.js
-!build/style.css
-!build/index.js
-!build/utf16_class*
+!build/panel/index.css
+!build/panel/index.js
+!build/panel/utf16_class*

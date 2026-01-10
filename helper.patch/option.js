@@ -4,7 +4,7 @@
  */
 
 const scheme_in = {
-include([[package/config.json]])dnl
+include(package/config.json)dnl
 }
 
 function remap_scheme([ key_in, val ])
