@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-npm-packages := @slimio/wcwidth pngjs tailwindcss
+npm-packages := pngjs tailwindcss
 
 tailwindcss ?= tailwindcss
 tailwindcss += --minify

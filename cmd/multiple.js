@@ -2,6 +2,8 @@
 /*
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
+dnl
+include(helper.patch/option.m4)dnl
 
 import { platform } from 'node:process'
 
@@ -34,6 +36,23 @@ function patch_ctx(ctx, editor, editor_config)
 	ctx.line_height_ratio = platform == 'darwin' ? 1.5 : 1.35
 
 	ctx.tabstop = editor.options.tabSize
+	ctx.lang = vsc_env.language
+}
+
+function transform_ctx(ctx)
+{
+	switch (ctx.trim) {
+	case 'trailing':
+		ctx.trim = TRIM_TAIL
+		break
+
+	case 'leading':
+		ctx.trim = TRIM_HEAD
+		break
+
+	case 'both':
+		ctx.trim = TRIM_TAIL | TRIM_HEAD
+	}
 }
 
 function reset_panel()
@@ -92,6 +111,7 @@ export async function exec(editor)
 
 	opt_ensure_valid(ctx)
 	patch_ctx(ctx, editor, editor_config)
+	transform_ctx(ctx)
 
 	if (panel) {
 		panel.reveal(panel.viewColumn, true)

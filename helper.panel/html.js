@@ -5,9 +5,7 @@
 dnl
 include(helper.panel/node.m4)dnl
 
-import wcwidth from '@slimio/wcwidth'
-
-import { calc_tabspan } from './calc.js'
+import { calc_tabspan, calc_digit_width, calc_str_width } from './calc.js'
 import { style_resolve } from './style.js'
 import { trace_start, trace_stop } from './trace.js'
 import { utf16_class, utf16_class_su, utf16_width } from './utf16.js'
@@ -47,75 +45,55 @@ function gen_box_style(style)
 	return out.join(';')
 }
 
-function expand_tabs(str, tabstop)
+function expand_tabs(str)
 {
 	const cols = str.split('\t')
 	const out = []
-	let i
+	let idx
 
-	for (i = 0; i < cols.length - 1; i++) {
-		const col = cols[i]
-		const col_len = wcwidth(col)
+	for (idx = 0; idx < cols.length - 1; idx++) {
+		const col = cols[idx]
+		const col_len = calc_str_width(col)
 
-		const tab_len = calc_tabspan(col_len, tabstop)
+		const tab_len = calc_tabspan(col_len)
 		const pad = ' '.repeat(tab_len)
 
 		out.push(col, pad)
 	}
 
-	out.push(cols[i])
+	out.push(cols[idx])
 	return out.join('')
 }
 
-function loop_plain_lines(plain, tabstop, fn_list, fn_args)
+function loop_plain_lines(plain, fn_list, fn_args)
 {
-	const line_list = plain.split('\n')
-	let line_idx
+	const ln_list = plain.split('\n')
+	let ln_idx
 
-	for (line_idx = 0; line_idx < line_list.length; line_idx++) {
+	for (ln_idx = 0; ln_idx < ln_list.length; ln_idx++) {
 		let fn_idx
 
 		for (fn_idx = 0; fn_idx < fn_list.length; fn_idx++) {
-			let line = line_list[line_idx]
 			const fn = fn_list[fn_idx]
 			const args = fn_args[fn_idx]
 
-			if (line != '')
-				line = expand_tabs(line, tabstop)
+			if (ln_list[ln_idx] != '')
+				ln_list[ln_idx] = expand_tabs(ln_list[ln_idx])
 
-			fn(line, ...args, line_idx, line_list)
+			fn(ln_list[ln_idx], ...args, ln_idx, ln_list)
 		}
 	}
 }
 
-function find_width_base(line, width_base, line_idx, line_list)
+function find_width_base(line, wd_base, line_idx, line_list)
 {
-	if (line.length > line_list[width_base[0]].length)
-		width_base[0] = line_idx
+	if (line.length > line_list[wd_base[0]].length)
+		wd_base[0] = line_idx
 }
 
 function build_weight_list(str, weights)
 {
-	let weight = 0
-	let idx
-
-	for (idx = 0; idx < str.length; idx++) {
-		const c1 = str.charCodeAt(idx)
-		let c2
-
-		let cls_idx = c1
-		let cls_map = utf16_class
-
-		if ((c1 & 0xfc00) == 0xd800) {
-			idx++
-			c2 = str.charCodeAt(idx)
-
-			cls_idx = (c1 & 0x3ff) * 0x400 + (c2 & 0x3ff)
-			cls_map = utf16_class_su
-		}
-
-		weight += utf16_width[cls_map[cls_idx]]
-	}
+	const weight = calc_str_width(str)
 
 	weights.push(weight)
 }
@@ -159,7 +137,7 @@ function fake_resolve_str(plain, weights, wd_base, ctx)
 	]
 
 	lines.push(`<div style="${box_style}">`)
-	loop_plain_lines(plain, ctx.tabstop, fn_list, fn_args)
+	loop_plain_lines(plain, fn_list, fn_args)
 	lines.push('</div>')
 
 	const html = lines.join('')
@@ -190,9 +168,10 @@ export function html_resolve_str(clipboard, ctx)
 			[ weights ],
 		]
 
-		loop_plain_lines(plain, ctx.tabstop, fn_list, fn_args)
+		loop_plain_lines(plain, fn_list, fn_args)
 	}
 
+	console.log(wd_base[0])
 	trace_stop('html_resolve_str')
 	return [ html, weights, wd_base[0] ]
 }
@@ -211,6 +190,26 @@ export function html_parse_str(text)
 	return box
 }
 
+export function html_canonicalize(tree)
+{
+	trace_start('__filename__:html_canonicalize')
+
+	let next = CHILD_OF(tree)
+
+	do {
+		if (next.tagName != 'BR' && CHILD_OF(next))
+			continue
+
+		const lf = lf_node.cloneNode(true)
+
+		tree.replaceChild(lf, next)
+		next = lf
+
+	} while (next = NEXT_CHILD_OF(next))
+
+	trace_stop('__filename__:html_canonicalize')
+}
+
 function count_indent_width(next)
 {
 	const token = CHILD_OF(next)
@@ -223,28 +222,23 @@ function count_indent_width(next)
 	return cnt
 }
 
-export function html_canonicalize(tree,)
+export function html_mark_indent(tree)
 {
-	trace_start('html_canonicalize')
+	trace_start('__filename__:html_setup_indent')
 
 	let next = CHILD_OF(tree)
 	let indent = -1 >>> 0
 
 	do {
-		if (next.tagName == 'BR' || !CHILD_OF(next)) {
-			const lf = lf_node.cloneNode(true)
+		if (next.dataset.empty)
+			continue
 
-			tree.replaceChild(lf, next)
-			next = lf
+		const width = count_indent_width(next)
 
-		} else if (indent) {
-			const width = count_indent_width(next)
-
-			if (next == CHILD_OF(tree))
-				next.dataset.indent = width
-			else if (indent > width)
-				indent = width
-		}
+		if (next == CHILD_OF(tree))
+			next.dataset.indent = width
+		else if (indent > width)
+			indent = width
 
 	} while (next = NEXT_CHILD_OF(next))
 
@@ -253,5 +247,94 @@ export function html_canonicalize(tree,)
 	else
 		tree.dataset.indent = indent
 
-	trace_stop('html_canonicalize')
+	trace_stop('__filename__:html_setup_indent')
+}
+
+
+export function html_trim_tail(tree, ctx)
+{
+	let next = LAST_CHILD_OF(tree)
+
+	do {
+		if (next.dataset.empty == undefined)
+			break
+
+		tree.removeChild(next)
+
+		ctx.end_row--
+		ctx.end_col = 0
+	} while (next = LAST_CHILD_OF(tree))
+}
+
+export function html_trim_head(tree)
+{
+	let wd_base = tree.dataset.wd_base
+	let next = CHILD_OF(tree)
+
+	do {
+		if (next.dataset.empty == undefined)
+			break
+
+		tree.removeChild(next)
+		wd_base--
+
+		ctx.begin_row--
+		ctx.begin_col = 0
+	} while (next = CHILD_OF(tree))
+
+	tree.dataset.wd_base = wd_base
+}
+
+function init_pad_map(max)
+{
+	const empty = Array(max + 1)
+	const initial = empty.fill(' ')
+
+	const filled = initial.map((s, i) => s.repeat(i))
+	const reversed = filled.reverse()
+
+	return reversed
+}
+
+export function html_setup_lineno(tree, ctx)
+{
+	trace_start('__filename__:setup_lineno')
+
+	const start = ctx.begin_row + 1
+	const end = ctx.end_row + 1
+
+	let next = CHILD_OF(tree)
+	let line = start
+
+	const width = calc_digit_width(end)
+	const pad = init_pad_map(width)
+
+	do {
+		const idx = calc_digit_width(line)
+
+		next.dataset.lineno = `${pad[idx]}${line}`
+		line++
+	} while (next = NEXT_CHILD_OF(next))
+
+	trace_stop('__filename__:setup_lineno')
+}
+
+function calc_pad(str_in, pad_end)
+{
+	const str = str_in.slice(0, pad_end)
+	const width = calc_str_width(str)
+
+	return width
+}
+
+export function html_pad_head(tree, ctx)
+{
+	const width = calc_pad(ctx.head_line, ctx.begin_col)
+	const pad = ' '.repeat(width)
+
+	const head = CHILD_OF(tree)
+	const token = CHILD_OF(head)
+
+	TEXT_OF(token) = pad + TEXT_OF(token)
+	return width
 }

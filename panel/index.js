@@ -2,21 +2,25 @@
 /*
  * Copyright 2025, 2026 Jiamu Sun <barroit@linux.com>
  */
+dnl
+include(helper.panel/node.m4)dnl
+include(helper.patch/option.m4)dnl
 
 import btn from '../helper.panel/btn.js'
 import { chunk_parse, chunk_group } from '../helper.panel/chunk.js'
 import {
-	feature_apply_lineno,
-	feature_apply_trim,
-	feature_apply_no_pad,
-} from '../helper.panel/feature.js'
-import {
 	html_resolve_str,
 	html_parse_str,
 	html_canonicalize,
+	html_mark_indent,
+	html_trim_tail,
+	html_trim_head,
+	html_setup_lineno,
+	html_pad_head,
 } from '../helper.panel/html.js'
 import { error, warn, info } from '../helper.panel/mesg.js'
 import { style_init_root } from '../helper.panel/style.js'
+import { utf16_init } from '../helper.panel/utf16.js'
 
 const webview = acquireVsCodeApi()
 let ctx
@@ -37,6 +41,8 @@ function on_paste(event)
 	if (!ctx.ready)
 		return
 
+	utf16_init(ctx)
+
 	ctx.ready = 0
 	ctx.style = getComputedStyle(canvas)
 
@@ -52,16 +58,35 @@ function on_paste(event)
 	tree.dataset.wd_base = wd_base
 	html_canonicalize(tree)
 
-	feature_apply_lineno(tree, ctx)
-
-	feature_apply_trim(tree, ctx)
+	if (ctx['trim'] & TRIM_TAIL)
+		html_trim_tail(tree, ctx)
+	if (ctx['trim'] & TRIM_HEAD && tree.hasChildNodes())
+		html_trim_head(tree, ctx)
 
 	if (!tree.hasChildNodes()) {
 		warn(webview, 'nothing to be done')
 		return
 	}
 
-	feature_apply_no_pad(tree, ctx)
+	html_mark_indent(tree)
+
+	if (ctx['no-lineno'])
+		tree.dataset['no-lineno'] = ''
+	else
+		html_setup_lineno(tree, ctx)
+
+	const head = CHILD_OF(tree)
+	const body_indent = Number(tree.dataset.indent)
+	let head_indent = Number(head.dataset.indent)
+
+	if (!ctx['no-pad'])
+		head_indent += html_pad_head(tree, ctx)
+
+	if (body_indent > head_indent)
+		tree.dataset.indent = head_indent
+
+	if (!ctx['no-indent'] || head_indent == 0)
+		delete tree.dataset.indent
 
 	const chunk_size = ctx.tune.max_chunk_size
 	const chunks = chunk_parse(tree, chunk_size)

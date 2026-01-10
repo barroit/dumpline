@@ -18,5 +18,22 @@ const cls_su_buf = await cls_su_fetch.arrayBuffer()
 export const utf16_class = new Uint8Array(cls_buf)
 export const utf16_class_su = new Uint8Array(cls_su_buf)
 
-export const utf16_class_name = [ 'N', 'A', 'F', 'H', 'Na', 'W' ]
-export const utf16_width =      [  1,   2,   2,   1,   1,    2  ]
+export const utf16_class_name = [ 'N', 'A', 'F', 'H', 'Na', 'W', 'tab' ]
+export const utf16_width =      [  1,   1,   2,   1,   1,    2,    0   ]
+
+export function utf16_init(ctx)
+{
+	const cjk = /^ja|^zh|^ko/
+
+	if (cjk.test(ctx.lang))
+		utf16_width[1] = 2
+	else
+		utf16_width[1] = 1
+
+	utf16_width[6] = ctx.tabstop
+}
+
+export function utf16_tabstop()
+{
+	return utf16_width[6]
+}

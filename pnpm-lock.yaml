@@ -8,9 +8,6 @@ importers:
 
   .:
     devDependencies:
-      '@slimio/wcwidth':
-        specifier: ^1.0.0
-        version: 1.0.0
       pngjs:
         specifier: ^7.0.0
         version: 7.0.0
@@ -20,10 +17,6 @@ importers:
 
 packages:
 
-  '@slimio/wcwidth@1.0.0':
-    resolution: {integrity: sha512-/IXhyOjKnXkKeJlkavbmY1VCkznwZeMDccCABQXrYtyfYLfF0Wjzubtf8+stIiGyy7jkZiZE5w2fVaH1XhzX5A==}
-    engines: {node: '>=10'}
-
   pngjs@7.0.0:
     resolution: {integrity: sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==}
     engines: {node: '>=14.19.0'}
@@ -32,8 +25,6 @@ packages:
     resolution: {integrity: sha512-4+Z+0yiYyEtUVCScyfHCxOYP06L5Ne+JiHhY2IjR2KWMIWhJOYZKLSGZaP5HkZ8+bY0cxfzwDE5uOmzFXyIwxw==}
 
 snapshots:
-
-  '@slimio/wcwidth@1.0.0': {}
 
   pngjs@7.0.0: {}
 
