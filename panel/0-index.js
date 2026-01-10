@@ -8,7 +8,7 @@ import { chunk_parse, chunk_group } from './chunk.js'
 import {
 	feature_apply_lineno,
 	feature_apply_trim,
-	feature_apply_pad,
+	feature_apply_no_pad,
 } from './feature.js'
 import { html_resolve_str, html_parse_str, html_canonicalize } from './html.js'
 import { error, warn, info } from './mesg.js'
@@ -57,7 +57,7 @@ function on_paste(event)
 		return
 	}
 
-	feature_apply_pad(tree, ctx)
+	feature_apply_no_pad(tree, ctx)
 
 	const chunk_size = ctx.tune.max_chunk_size
 	const chunks = chunk_parse(tree, chunk_size)

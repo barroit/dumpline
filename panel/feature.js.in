@@ -116,11 +116,13 @@ export function feature_apply_trim(tree, feature)
 
 	if (feature['trim'] == 'both') {
 		trim_tail(tree)
-		trim_head(tree)
+
+		if (tree.hasChildNodes())
+			trim_head(tree)
 	}
 }
 
-export function feature_apply_pad(tree, feature)
+export function feature_apply_no_pad(tree, feature)
 {
 	const head = CHILD_OF(tree)
 	const body_indent = Number(tree.dataset.indent)
