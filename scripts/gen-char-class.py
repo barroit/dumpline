@@ -14,10 +14,10 @@ SU_MAX = 0x3ff
 SU_SZ = SU_MAX + 1
 
 class_map = {
-	'A':  0,
-	'F':  1,
-	'H':  2,
-	'N':  3,
+	'N':  0,
+	'A':  1,
+	'F':  2,
+	'H':  3,
 	'Na': 4,
 	'W':  5,
 }
@@ -86,8 +86,6 @@ utf16_class_su_stream = open(table_su_dst, 'wb')
 utf16_class = bytearray(BMP_SZ)
 utf16_class_su = bytearray(SU_SZ * SU_SZ)
 
-next = -1
-
 while 39:
 	surrogate_begin = table_stream.tell()
 	line = table_stream.readline()
@@ -97,13 +95,14 @@ while 39:
 
 	idx_range, idx_class = parse_idx_class(line)
 	cls = class_map[idx_class]
+
+	if cls == 0:
+		continue
+
 	begin, end = parse_range(idx_range)
 
 	if begin >= BMP_SU_BEGIN and begin <= BMP_SU_END:
 		continue
-
-	if begin != next + 1:
-		emit_pad(utf16_class, 0, next + 1, begin)
 
 	if begin > BMP_MAX:
 		break
@@ -114,45 +113,22 @@ while 39:
 utf16_class_stream.write(utf16_class)
 table_stream.seek(surrogate_begin)
 
-prev_w1 = -1
-prev_w2 = -1
-
 for line in table_stream:
 	if skip_line(line):
 		continue
 
 	idx_range, idx_class = parse_idx_class(line)
 	cls = class_map[idx_class]
+
+	if cls == 0:
+		continue
+
 	begin, end = parse_range(idx_range)
 
 	for next in range(begin, end + 1):
 		w1 = (next >> 10) - 0x40
 		w2 = next & 0x3ff
 
-		if prev_w1 == -1:
-			prev_w1 = w1
-
-		if w1 >= prev_w1 + 1:
-			if prev_w2 != SU_MAX:
-				emit_pad(utf16_class_su, \
-					 prev_w1 * SU_SZ, prev_w2 + 1, SU_SZ)
-
-			if w1 > prev_w1 + 1:
-				for row in range(prev_w1 + 1, w1):
-					emit_pad(utf16_class_su, \
-						 row * SU_SZ, 0, SU_SZ)
-
-			prev_w2 = -1
-
-		if w2 != prev_w2 + 1:
-			emit_pad(utf16_class_su, w1 * SU_SZ, prev_w2 + 1, w2)
-
 		utf16_class_su[w1 * SU_SZ + w2] = cls
-
-		prev_w1 = w1
-		prev_w2 = w2
-
-if prev_w2 != SU_MAX:
-	emit_pad(utf16_class_su, w1 * SU_SZ, prev_w2 + 1, SU_SZ)
 
 utf16_class_su_stream.write(utf16_class_su)
