@@ -36,14 +36,20 @@ function patch_ctx(ctx, editor, editor_config)
 	ctx.tabstop = editor.options.tabSize
 }
 
+function reset_panel()
+{
+	panel = undefined
+}
+
 function dump_binary()
 {
 	//
 }
 
-function reset_panel()
+async function exec_once()
 {
-	panel = undefined
+	await vsc_exec_cmd(cp_rich_cmd)
+	panel.webview.postMessage(this)
 }
 
 function recv_mesg(event)
@@ -52,6 +58,18 @@ function recv_mesg(event)
 	let fn
 
 	switch (name) {
+	case 'ready':
+		fn = exec_once
+		break
+
+	case 'open':
+		fn = vsc_env.openExternal
+		break
+
+	case 'dump':
+		fn = dump_binary
+		break
+
 	case 'error':
 		fn = error
 		break
@@ -62,17 +80,9 @@ function recv_mesg(event)
 
 	case 'info':
 		fn = info
-		break
-
-	case 'open':
-		fn = vsc_env.openExternal
-		break
-
-	case 'dump':
-		fn = dump_binary
 	}
 
-	fn(data)
+	fn.call(this, data)
 }
 
 export async function exec(editor)
@@ -87,7 +97,4 @@ export async function exec(editor)
 
 	opt_ensure_valid(ctx)
 	patch_ctx(ctx, editor, editor_config)
-
-	await vsc_exec_cmd(cp_rich_cmd)
-	panel.webview.postMessage(ctx)
 }
