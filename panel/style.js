@@ -45,11 +45,6 @@ function init_lineno_color(root, style)
 	root.style.setProperty('--39-lineno-color', fg)
 }
 
-function init_tabstop(root, _, ctx)
-{
-	root.style.setProperty('--39-tabstop', ctx.tabstop)
-}
-
 function init_whitespace(root)
 {
 	root.style.setProperty('--39-whitespace', 'pre')
@@ -58,7 +53,6 @@ function init_whitespace(root)
 const init_tasks = [
 	init_line_height,
 	init_lineno_color,
-	init_tabstop,
 	init_whitespace,
 ]
 

@@ -7,6 +7,7 @@ import wcwidth from '@slimio/wcwidth'
 
 import { style_resolve } from './style.js'
 import { trace_start, trace_stop } from './trace.js'
+import { utf16_class, utf16_class_su, utf16_width } from './utf16.js'
 
 import { calc_tabspan } from '../helper.patch/calc.js'
 
@@ -65,78 +66,134 @@ function expand_tabs(str, tabstop)
 	return out.join('')
 }
 
-function find_width_base_with(plain, tabstop, cb, ...args)
+function loop_plain_lines(plain, tabstop, fn_list, fn_args)
 {
-	const lines = plain.split('\n')
-	let longest = 0
-	let current
+	const line_list = plain.split('\n')
+	let line_idx
 
-	for (current = 0; current < lines.length; current++) {
-		if (lines[current] != '')
-			lines[current] = expand_tabs(lines[current], tabstop)
+	for (line_idx = 0; line_idx < line_list.length; line_idx++) {
+		let fn_idx
 
-		if (lines[current].length > lines[longest].length)
-			longest = current
+		for (fn_idx = 0; fn_idx < fn_list.length; fn_idx++) {
+			let line = line_list[line_idx]
+			const fn = fn_list[fn_idx]
+			const args = fn_args[fn_idx]
 
-		if (cb)
-			cb(lines[current], ...args)
+			if (line != '')
+				line = expand_tabs(line, tabstop)
+
+			fn(line, ...args, line_idx, line_list)
+		}
 	}
-
-	return longest
 }
 
-function gen_fake_block(line, buf, sanitizer, block_begin, block_end)
+function find_width_base(line, width_base, line_idx, line_list)
 {
+	if (line.length > line_list[width_base[0]].length)
+		width_base[0] = line_idx
+}
+
+function build_weight_list(str, weights)
+{
+	let weight = 0
+	let idx
+
+	for (idx = 0; idx < str.length; idx++) {
+		const c1 = str.charCodeAt(idx)
+		let c2
+
+		let cls_idx = c1
+		let cls_map = utf16_class
+
+		if ((c1 & 0xfc00) == 0xd800) {
+			idx++
+			c2 = str.charCodeAt(idx)
+
+			cls_idx = (c1 & 0x3ff) * 0x400 + (c2 & 0x3ff)
+			cls_map = utf16_class_su
+		}
+
+		weight += utf16_width[cls_map[cls_idx]]
+	}
+
+	weights.push(weight)
+}
+
+function build_fake_block(line, lines, sanitizer, blk_begin, blk_end)
+{
+	let built
+
 	if (line == '') {
-		buf.push('<br>')
+		built = '<br>'
 
 	} else {
 		TEXT_OF(sanitizer) = line
-		buf.push(block_begin + sanitizer.innerHTML + block_end)
+		built = blk_begin + sanitizer.innerHTML + blk_end
 	}
+
+	lines.push(built)
 }
 
-function fake_resolve_str(plain, style, tabstop)
+function fake_resolve_str(plain, weights, wd_base, ctx)
 {
-	const box_style = gen_box_style(style)
-	const buf = []
+	const box_style = gen_box_style(ctx.style)
+	const lines = []
 
 	const sanitizer = document.createElement('div')
-	const foreground = style_resolve(style, '--vscode-editor-foreground')
-	const block_begin = `<div><span style="color: ${foreground}">`
-	const block_end = '</span></div>'
+	const foreground = style_resolve(ctx.style,
+					 '--vscode-editor-foreground')
 
-	buf.push(`<div style="${box_style}">`)
+	const blk_begin = `<div><span style="color: ${foreground}">`
+	const blk_end = '</span></div>'
 
-	const width_base = find_width_base_with(plain, tabstop,
-						gen_fake_block,
-						buf, sanitizer,
-						block_begin, block_end)
+	const fn_list = [
+		find_width_base,
+		build_weight_list,
+		build_fake_block,
+	]
+	const fn_args = [
+		[ wd_base ],
+		[ weights ],
+		[ lines, sanitizer, blk_begin, blk_end ],
+	]
 
-	buf.push('</div>')
+	lines.push(`<div style="${box_style}">`)
+	loop_plain_lines(plain, ctx.tabstop, fn_list, fn_args)
+	lines.push('</div>')
 
-	const html = buf.join('')
+	const html = lines.join('')
 
-	return [ html, width_base ]
+	return html
 }
 
-export function html_resolve_str(clipboard, style)
+export function html_resolve_str(clipboard, ctx)
 {
 	trace_start('html_resolve_str')
 
 	let html = clipboard.getData('text/html')
-	let width_base
-
 	const plain = clipboard.getData('text/plain')
-	const tabstop = style_resolve(style, '--39-tabstop')
 
-	if (!html)
-		[ html, width_base ] = fake_resolve_str(plain, style, tabstop)
-	else
-		width_base = find_width_base_with(plain, tabstop)
+	const weights = []
+	const wd_base = [ 0 ]
+
+	if (!html) {
+		html = fake_resolve_str(plain, weights, wd_base, ctx)
+
+	} else {
+		const fn_list = [
+			find_width_base,
+			build_weight_list,
+		]
+		const fn_args = [
+			[ wd_base ],
+			[ weights ],
+		]
+
+		loop_plain_lines(plain, ctx.tabstop, fn_list, fn_args)
+	}
 
 	trace_stop('html_resolve_str')
-	return [ html, width_base ]
+	return [ html, weights, wd_base[0] ]
 }
 
 export function html_parse_str(text)
@@ -165,7 +222,7 @@ function count_indent_width(next)
 	return cnt
 }
 
-export function html_canonicalize(tree)
+export function html_canonicalize(tree,)
 {
 	trace_start('html_canonicalize')
 

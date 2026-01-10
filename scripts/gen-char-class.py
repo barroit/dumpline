@@ -24,8 +24,8 @@ class_map = {
 
 import atexit
 from os import getpid, unlink
-import signal
-import sys
+from signal import signal, SIGTERM, SIGINT
+from sys import argv
 from urllib.request import urlretrieve
 
 unique = getpid()
@@ -34,8 +34,8 @@ table_ver = '17.0.0'
 table_url = f"https://www.unicode.org/Public/{table_ver}/ucd/EastAsianWidth.txt"
 table_src = f".tmp-{unique}"
 
-table_dst = 'build/utf16_class'
-table_su_dst = 'build/utf16_class_su'
+table_dst = argv[1]
+table_su_dst = f"{table_dst}_su"
 
 def cleanup():
 	try:
@@ -44,8 +44,8 @@ def cleanup():
 		pass
 
 atexit.register(cleanup)
-signal.signal(signal.SIGTERM, cleanup)
-signal.signal(signal.SIGINT, cleanup)
+signal(SIGTERM, cleanup)
+signal(SIGINT, cleanup)
 
 urlretrieve(table_url, table_src)
 

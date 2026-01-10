@@ -57,6 +57,7 @@ function trim_tail(tree)
 
 function trim_head(tree)
 {
+	let wd_base = tree.dataset.wd_base
 	let next = CHILD_OF(tree)
 
 	do {
@@ -64,7 +65,10 @@ function trim_head(tree)
 			break
 
 		tree.removeChild(next)
+		wd_base--
 	} while (next = CHILD_OF(tree))
+
+	tree.dataset.wd_base = wd_base
 }
 
 function calc_pad(line, pad_end, tabstop)
@@ -82,7 +86,7 @@ function calc_pad(line, pad_end, tabstop)
 	return len
 }
 
-function pad_head(tree, ctx)
+function pad_head(tree, ctx, wd_base)
 {
 	const width = calc_pad(ctx.head_line, ctx.begin_col, ctx.tabstop)
 	const pad = ' '.repeat(width)
@@ -94,13 +98,16 @@ function pad_head(tree, ctx)
 	return width
 }
 
-export function feature_apply(tree, feature)
+export function feature_apply_lineno(tree, feature)
 {
 	if (feature['no-lineno'])
 		tree.dataset['no-lineno'] = ''
 	else
 		setup_lineno(tree, feature)
+}
 
+export function feature_apply_trim(tree, feature)
+{
 	if (feature['trim'] == 'trailing')
 		trim_tail(tree)
 
@@ -111,7 +118,10 @@ export function feature_apply(tree, feature)
 		trim_tail(tree)
 		trim_head(tree)
 	}
+}
 
+export function feature_apply_pad(tree, feature)
+{
 	const head = CHILD_OF(tree)
 	const body_indent = Number(tree.dataset.indent)
 	let head_indent = Number(head.dataset.indent)

@@ -59,7 +59,7 @@ function update_chunk_height(chunk, nr_lines)
 	chunk.setAttribute('height', height)
 }
 
-function setup_chunk(chunk, chunk_size, tree, width_base)
+function setup_chunk(chunk, chunk_size, tree, sample)
 {
 	const style_box = tree.cloneNode(false)
 	const indent = style_box.dataset.indent
@@ -69,19 +69,20 @@ function setup_chunk(chunk, chunk_size, tree, width_base)
 
 	CHILD_OF(chunk).appendChild(style_box)
 
-	update_chunk_width(chunk, width_base)
+	update_chunk_width(chunk, sample)
 	update_chunk_height(chunk, chunk_size)
 }
 
-export function chunk_parse(tree, chunk_size, width_base_idx)
+export function chunk_parse(tree, chunk_size)
 {
 	const lines = tree.children
+	const wd_base = tree.dataset.wd_base
 	const chunk_tmpl = chunk_node.cloneNode(true)
 
 	let nr = lines.length
 	const ret = []
 
-	setup_chunk(chunk_tmpl, chunk_size, tree, lines[width_base_idx])
+	setup_chunk(chunk_tmpl, chunk_size, tree, lines[wd_base])
 
 	while (nr != 0) {
 		if (chunk_size > nr) {
@@ -98,4 +99,9 @@ export function chunk_parse(tree, chunk_size, width_base_idx)
 	}
 
 	return ret
+}
+
+export function chunk_group(chunks, weights)
+{
+	//
 }

@@ -4,8 +4,12 @@
  */
 
 import btn from './btn.js'
-import { chunk_parse } from './chunk.js'
-import { feature_apply } from './feature.js'
+import { chunk_parse, chunk_group } from './chunk.js'
+import {
+	feature_apply_lineno,
+	feature_apply_trim,
+	feature_apply_pad,
+} from './feature.js'
 import { html_resolve_str, html_parse_str, html_canonicalize } from './html.js'
 import { error, warn, info } from './mesg.js'
 import { style_init_root } from './style.js'
@@ -30,27 +34,36 @@ function on_paste(event)
 		return
 
 	ctx.ready = 0
-
-	const style = getComputedStyle(canvas)
+	ctx.style = getComputedStyle(canvas)
 
 	if (!root.dataset.ready) {
-		style_init_root(root, style, ctx)
+		style_init_root(root, ctx.style, ctx)
 		root.dataset.ready = ''
 	}
 
 	const clipboard = event.clipboardData
-	const [ html, width_base ] = html_resolve_str(clipboard, style)
+	const [ html, weights, wd_base ] = html_resolve_str(clipboard, ctx)
 	const tree = html_parse_str(html)
 
+	tree.dataset.wd_base = wd_base
 	html_canonicalize(tree)
 
-	feature_apply(tree, ctx)
+	feature_apply_lineno(tree, ctx)
+
+	feature_apply_trim(tree, ctx)
+
+	if (!tree.hasChildNodes()) {
+		warn(webview, 'nothing to be done')
+		return
+	}
+
+	feature_apply_pad(tree, ctx)
 
 	const chunk_size = ctx.tune.max_chunk_size
-	const chunks = chunk_parse(tree, chunk_size, width_base)
+	const chunks = chunk_parse(tree, chunk_size)
 
 	canvas.append(...chunks)
-	// const chains = group_chunks(chunks, )
+	// const chains = chunk_group(chunks, weights)
 }
 
 document.addEventListener('paste', on_paste)

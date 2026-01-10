@@ -23,6 +23,12 @@ function gen_panel_html(webview, prefix_in)
 	const script_uri = vsc_uri.joinPath(prefix, 'panel.js')
 	const script = webview.asWebviewUri(script_uri)
 
+	const utf16_class_uri = vsc_uri.joinPath(prefix, 'utf16_class')
+	const utf16_class = webview.asWebviewUri(utf16_class_uri)
+
+	const utf16_class_su_uri = vsc_uri.joinPath(prefix, 'utf16_class_su')
+	const utf16_class_su = webview.asWebviewUri(utf16_class_su_uri)
+
 	const rand = crypto.randomBytes(16)
 	const nonce = rand.toString('base64')
 
@@ -31,11 +37,12 @@ include([[helper.patch/panel.html]])dnl
 	`
 }
 
-export function panel_init(ctx, mesg_cb, disp_cb)
+export function panel_init(ctx, mesg_cb, mesg_ctx, disp_cb, disp_ctx)
 {
 	const view_opt = {
 		viewColumn: vsc_view_column.Beside,
 		preserveFocus: true,
+		localResourceRoots: [ ctx.binary.extensionUri ],
 	}
 	const panel_opt = {
 		enableScripts: true,
@@ -47,9 +54,9 @@ export function panel_init(ctx, mesg_cb, disp_cb)
 	const prefix = ctx.binary.uri
 
 	webview.html = gen_panel_html(webview, prefix)
-	webview.onDidReceiveMessage(mesg_cb, ctx, ctx.cleanup)
+	webview.onDidReceiveMessage(mesg_cb, mesg_ctx, ctx.cleanup)
 
-	panel.onDidDispose(disp_cb, ctx, ctx.cleanup)
+	panel.onDidDispose(disp_cb, disp_ctx, ctx.cleanup)
 	panel.iconPath = vsc_uri.joinPath(prefix, 'image', 'negi.svg')
 
 	return panel

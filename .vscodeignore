@@ -9,3 +9,4 @@
 !build/entry.js
 !build/style.css
 !build/index.js
+!build/utf16_class*

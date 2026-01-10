@@ -87,14 +87,17 @@ function recv_mesg(event)
 
 export async function exec(editor)
 {
-	if (panel)
-		panel.reveal(panel.viewColumn, true)
-	else
-		panel = panel_init(this, recv_mesg, reset_panel)
-
 	const ctx = this.fetch_config('dumpline')
 	const editor_config = this.fetch_config('editor')
 
 	opt_ensure_valid(ctx)
 	patch_ctx(ctx, editor, editor_config)
+
+	if (panel) {
+		panel.reveal(panel.viewColumn, true)
+		exec_once.call(ctx)
+
+	} else {
+		panel = panel_init(this, recv_mesg, ctx, reset_panel)
+	}
 }

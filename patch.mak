@@ -26,6 +26,9 @@ script-gen-y  := $(script-gen-in:%.in=%)
 
 script-helper-in := $(wildcard $(panel-prefix)/*.m4)
 
+utf16-class-in := utf16_class
+utf16-class-y := $(prefix)/$(utf16-class-in)
+
 prebundle := $(modules-y) $(helper-gen-y)
 
 package-in += $(image-prefix)/negi.png
@@ -42,7 +45,7 @@ $(panel-y): $(panel-in)
 $(helper-gen-y): %: %.in $(panel-y)
 	$(m4) $< >$@
 
-prepackage := $(panel-y) $(stylesheet-y)
+prepackage := $(panel-y) $(stylesheet-y) $(utf16-class-y)
 bundle-y   += $(script-y)
 
 $(script-gen-y): %: %.in $(script-helper-in)
@@ -55,9 +58,17 @@ $(script-y)1: $(script-in) $(script-gen-y) $(modules-y) | $(prefix)
 $(stylesheet-y): $(panel-in) | $(prefix)
 	$(tailwindcss) --cwd $(panel-prefix) >$@
 
+$(utf16-class-y):
+	$(script-prefix)/gen-char-class.py $@
+
 clean-prebundle := clean-prebundle
 
 clean-prebundle:
 	rm -f $(script-y)*
 	rm -f $(helper-gen-y)
 	rm -f $(prepackage)
+
+distclean-prebundle := distclean-prebundle
+
+distclean-prebundle:
+	rm -f $(utf16-class-y)

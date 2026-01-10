@@ -13,6 +13,7 @@
 
   <meta http-equiv='Content-Security-Policy'
         content="default-src 'none';
+                 connect-src ${webview.cspSource};
                  style-src ${webview.cspSource} 'unsafe-inline';
                  script-src 'nonce-${nonce}';"/>
 
@@ -27,9 +28,14 @@
 include([[panel/1-header.html]])dnl
     </aside>
   </header>
+
   <main class='select-none'>
     <div id='canvas' class='overflow-auto [&_div]:w-min pt-7'></div>
   </main>
+
+  <div class='hidden' id='utf16_class' data-uri='${utf16_class}'><div>
+  <div class='hidden' id='utf16_class_su' data-uri='${utf16_class_su}'><div>
+
   <script nonce='${nonce}' type='module' src='${script}'></script>
 </body>
 

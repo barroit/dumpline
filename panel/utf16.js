@@ -1,0 +1,22 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/*
+ * Copyright 2026 Jiamu Sun <barroit@linux.com>
+ */
+
+const cls_info = document.getElementById('utf16_class')
+const cls_su_info = document.getElementById('utf16_class_su')
+
+const cls_uri = cls_info.dataset.uri
+const cls_su_uri = cls_su_info.dataset.uri
+
+const cls_fetch = await fetch(cls_uri)
+const cls_su_fetch = await fetch(cls_su_uri)
+
+const cls_buf = await cls_fetch.arrayBuffer()
+const cls_su_buf = await cls_su_fetch.arrayBuffer()
+
+export const utf16_class = new Uint8Array(cls_buf)
+export const utf16_class_su = new Uint8Array(cls_su_buf)
+
+export const utf16_class_name = [ 'N', 'A', 'F', 'H', 'Na', 'W' ]
+export const utf16_width =      [  1,   2,   2,   1,   1,    2  ]
