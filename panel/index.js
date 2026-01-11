@@ -7,7 +7,7 @@ include(helper.panel/node.m4)dnl
 include(helper.patch/option.m4)dnl
 
 import btn from '../helper.panel/btn.js'
-import { chunk_parse, chunk_group } from '../helper.panel/chunk.js'
+import { chunk_parse, chunk_merge, chunk_group } from '../helper.panel/chunk.js'
 import {
 	html_resolve_str,
 	html_parse_str,
@@ -52,16 +52,16 @@ function on_paste(event)
 	}
 
 	const clipboard = event.clipboardData
-	const [ html, weights, wd_base ] = html_resolve_str(clipboard, ctx)
+	const [ html, ln_weights, wd_base ] = html_resolve_str(clipboard, ctx)
 	const tree = html_parse_str(html)
 
 	tree.dataset.wd_base = wd_base
 	html_canonicalize(tree)
 
 	if (ctx['trim'] & TRIM_TAIL)
-		html_trim_tail(tree, ctx)
+		html_trim_tail(tree, ctx, ln_weights)
 	if (ctx['trim'] & TRIM_HEAD && tree.hasChildNodes())
-		html_trim_head(tree, ctx)
+		html_trim_head(tree, ctx, ln_weights)
 
 	if (!tree.hasChildNodes()) {
 		warn(webview, 'nothing to be done')
@@ -90,7 +90,9 @@ function on_paste(event)
 
 	const chunk_size = ctx.tune.max_chunk_size
 	const chunks = chunk_parse(tree, chunk_size)
+	const weights = chunk_merge(ln_weights, chunk_size)
 
+	console.log(chunks, weights)
 	canvas.append(...chunks)
 	// const chains = chunk_group(chunks, weights)
 }

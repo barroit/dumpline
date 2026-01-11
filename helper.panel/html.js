@@ -249,9 +249,9 @@ export function html_mark_indent(tree)
 	trace_stop('__filename__:html_setup_indent')
 }
 
-
-export function html_trim_tail(tree, ctx)
+export function html_trim_tail(tree, ctx, weights)
 {
+	let drop = 0
 	let next = LAST_CHILD_OF(tree)
 
 	do {
@@ -259,15 +259,21 @@ export function html_trim_tail(tree, ctx)
 			break
 
 		tree.removeChild(next)
+		drop++
 
-		ctx.end_row--
-		ctx.end_col = 0
 	} while (next = LAST_CHILD_OF(tree))
+
+	if (!drop)
+		return
+
+	ctx.end_row -= drop
+	ctx.end_col = 0
+	weights.splice(-drop)
 }
 
-export function html_trim_head(tree)
+export function html_trim_head(tree, ctx, weights)
 {
-	let wd_base = tree.dataset.wd_base
+	let drop = 0
 	let next = CHILD_OF(tree)
 
 	do {
@@ -275,13 +281,16 @@ export function html_trim_head(tree)
 			break
 
 		tree.removeChild(next)
-		wd_base--
-
-		ctx.begin_row--
-		ctx.begin_col = 0
+		drop++
 	} while (next = CHILD_OF(tree))
 
-	tree.dataset.wd_base = wd_base
+	if (!drop)
+		return
+
+	tree.dataset.wd_base -= drop
+	ctx.begin_row -= drop
+	ctx.begin_col = 0
+	weights.splice(0, drop)
 }
 
 function init_pad_map(max)

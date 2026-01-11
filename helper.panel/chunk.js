@@ -103,6 +103,27 @@ export function chunk_parse(tree, chunk_size)
 	return ret
 }
 
+export function chunk_merge(input, chunk_size)
+{
+	const cap = Math.ceil(input.length / chunk_size)
+	const out = new Array(cap)
+
+	let out_idx = 0
+	let idx
+
+	for (idx = 0; idx < input.length; ) {
+		let sum = 0
+		const end = idx + chunk_size
+
+		for (; idx < end && idx < input.length; idx++)
+			sum += input[idx]
+
+		out[out_idx++] = sum
+	}
+
+	return out
+}
+
 export function chunk_group(chunks, weights)
 {
 	//
