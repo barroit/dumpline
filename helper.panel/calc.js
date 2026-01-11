@@ -2,19 +2,14 @@
 /*
  * Copyright 2026 Jiamu Sun <barroit@linux.com>
  */
+dnl
+include(helper.panel/utf16.m4)dnl
 
-import {
-	utf16_class,
-	utf16_class_su,
-	utf16_width,
-	utf16_tabstop,
-} from './utf16.js'
+import { utf16_class, utf16_class_su, utf16_width } from './utf16.js'
 
 export function calc_tabspan(len)
 {
-	const tabstop = utf16_tabstop()
-
-	return -len & (tabstop - 1) || tabstop
+	return -len & (utf16_width[CLS_TAB] - 1) || utf16_width[CLS_TAB]
 }
 
 export function calc_digit_width(n)
@@ -24,7 +19,6 @@ export function calc_digit_width(n)
 
 export function calc_str_width(str)
 {
-	const tabstop = utf16_tabstop()
 	let width = 0
 	let idx
 
@@ -32,10 +26,10 @@ export function calc_str_width(str)
 		const c1 = str.charCodeAt(idx)
 
 		if (c1 == 9) {
-			width += tabstop
+			width += calc_tabspan(width)
 
 		} else if ((c1 & 0xfc00) != 0xd800) {
-			width += utf16_class[utf16_class[c1]]
+			width += utf16_width[utf16_class[c1]]
 
 		} else {
 			idx++
@@ -43,7 +37,7 @@ export function calc_str_width(str)
 			const c2 = str.charCodeAt(idx)
 			const cls_idx = (c1 & 0x3ff) * 0x400 + (c2 & 0x3ff)
 
-			width += utf16_class_su[cls_map[cls_idx]]
+			width += utf16_width[utf16_class_su[cls_idx]]
 		} 
 	}
 

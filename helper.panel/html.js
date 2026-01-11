@@ -171,7 +171,6 @@ export function html_resolve_str(clipboard, ctx)
 		loop_plain_lines(plain, fn_list, fn_args)
 	}
 
-	console.log(wd_base[0])
 	trace_stop('html_resolve_str')
 	return [ html, weights, wd_base[0] ]
 }

@@ -32,8 +32,3 @@ export function utf16_init(ctx)
 
 	utf16_width[6] = ctx.tabstop
 }
-
-export function utf16_tabstop()
-{
-	return utf16_width[6]
-}
