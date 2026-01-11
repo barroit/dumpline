@@ -7,7 +7,12 @@ include(helper.panel/node.m4)dnl
 include(helper.patch/option.m4)dnl
 
 import btn from '../helper.panel/btn.js'
-import { chunk_parse, chunk_merge, chunk_group } from '../helper.panel/chunk.js'
+import {
+	chunk_parse,
+	chunk_merge,
+	chunk_balence,
+	chunk_list_init,
+} from '../helper.panel/chunk.js'
 import {
 	html_resolve_str,
 	html_parse_str,
@@ -75,26 +80,19 @@ function on_paste(event)
 	else
 		html_setup_lineno(tree, ctx)
 
-	const head = CHILD_OF(tree)
-	const body_indent = Number(tree.dataset.indent)
-	let head_indent = Number(head.dataset.indent)
-
 	if (!ctx['no-pad'])
-		head_indent += html_pad_head(tree, ctx)
+		html_pad_head(tree, ctx)
 
-	if (body_indent > head_indent)
-		tree.dataset.indent = head_indent
-
-	if (!ctx['no-indent'] || head_indent == 0)
+	if (ctx['no-indent'])
 		delete tree.dataset.indent
+	else
+		html_fixup_indent(tree, ctx)
 
-	const chunk_size = ctx.tune.max_chunk_size
-	const chunks = chunk_parse(tree, chunk_size)
-	const weights = chunk_merge(ln_weights, chunk_size)
+	const chunks = chunk_parse(tree, ctx.tune.max_chunk_size)
+	const weights = chunk_merge(ln_weights, ctx.tune.max_chunk_size)
+	const tasks = chunk_balence(chunks, weights, ctx.tune.max_worker)
 
-	console.log(chunks, weights)
-	canvas.append(...chunks)
-	// const chains = chunk_group(chunks, weights)
+	console.log(tasks)
 }
 
 document.addEventListener('paste', on_paste)

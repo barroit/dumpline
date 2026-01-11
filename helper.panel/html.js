@@ -344,5 +344,17 @@ export function html_pad_head(tree, ctx)
 	const token = CHILD_OF(head)
 
 	TEXT_OF(token) = pad + TEXT_OF(token)
-	return width
+	head.dataset.indent += width
+}
+
+export function html_fixup_indent(tree, ctx)
+{
+	const head = CHILD_OF(tree)
+	const body_indent = Number(tree.dataset.indent)
+	const head_indent = Number(head.dataset.indent)
+
+	if (head_indent == 0)
+		delete tree.dataset.indent
+	else if (body_indent > head_indent)
+		tree.dataset.indent = head_indent
 }
