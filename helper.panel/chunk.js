@@ -5,6 +5,8 @@
 dnl
 include(helper.panel/node.m4)dnl
 
+import { list_head, list_add } from './list.js'
+
 const svg_ns = 'http://www.w3.org/2000/svg'
 const chunk_svg = document.createElementNS(svg_ns, 'svg')
 const chunk_foreign_object = document.createElementNS(svg_ns, 'foreignObject')
@@ -124,7 +126,66 @@ export function chunk_merge(input, chunk_size)
 	return out
 }
 
-export function chunk_group(chunks, weights)
+function fast_group(chunks)
 {
-	//
+	const buckets = new Array({ length: chunks.length })
+	let idx
+
+	for (idx = 0; idx < chunks.length; idx++) {
+		const head = new list_head()
+		const node = new list_head(chunks[idx])
+
+		list_add(node, head)
+		buckets[idx] = head
+	}
+
+	return buckets
+}
+
+function slow_group(chunks, weights, max_worker)
+{
+	const indexes = Array.from({ length: weights.length }, (_, i) => i)
+	const buckets = Array.from({ length: max_worker },
+				   () => ([ 0, new list_head() ]))
+
+	indexes.sort((a, b) => weights[b] - weights[a])
+
+	for (const idx of indexes) {
+		let min = 0
+		let cur
+
+		for (cur = 1; cur < max_worker; cur++) {
+			if (buckets[cur][0] < buckets[min][0])
+				min = cur
+		}
+
+		const chunk = chunks[idx]
+		const node = new list_head(chunk)
+
+		buckets[min][0] += weights[idx]
+		list_add(node, buckets[min][1])
+	}
+
+	return buckets.map(([ _, head ]) => head)
+}
+
+export function chunk_group(chunks, weights, max_worker)
+{
+	let arr
+
+	if (chunks.length <= max_worker)
+		arr = fast_group(chunks)
+	else
+		arr = slow_group(chunks, weights, max_worker)
+
+	const head = new list_head()
+
+	for (const task of arr) {
+		const node = new list_head(task)
+
+		task.val = node
+		list_add(node, head)
+	}
+
+	return [ arr, head ]
 }

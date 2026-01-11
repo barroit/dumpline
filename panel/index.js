@@ -75,9 +75,8 @@ function on_paste(event)
 	else
 		html_setup_lineno(tree, ctx)
 
-	const head = CHILD_OF(tree)
 	const body_indent = Number(tree.dataset.indent)
-	let head_indent = Number(head.dataset.indent)
+	let head_indent = Number(CHILD_OF(tree).dataset.indent)
 
 	if (!ctx['no-pad'])
 		head_indent += html_pad_head(tree, ctx)
@@ -92,9 +91,10 @@ function on_paste(event)
 	const chunks = chunk_parse(tree, chunk_size)
 	const weights = chunk_merge(ln_weights, chunk_size)
 
-	console.log(chunks, weights)
-	canvas.append(...chunks)
-	// const chains = chunk_group(chunks, weights)
+	const max_worker = ctx.tune.max_worker
+	const [ task_arr, task_ring ] = chunk_group(chunks, weights, max_worker)
+
+	console.log(task_ring.next)
 }
 
 document.addEventListener('paste', on_paste)
