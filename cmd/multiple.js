@@ -22,13 +22,13 @@ function patch_ctx(ctx, editor, editor_config)
 	const select = editor.selection
 	const doc = editor.document
 
-	ctx.begin_row = select.start.line
-	ctx.begin_col = select.start.character
+	ctx.row_begin = select.start.line
+	ctx.col_begin = select.start.character
 
-	ctx.end_row = select.end.line
-	ctx.end_col = select.end.character
+	ctx.row_end = select.end.line
+	ctx.col_end = select.end.character
 
-	const head_line = doc.lineAt(ctx.begin_row)
+	const head_line = doc.lineAt(ctx.row_begin)
 
 	ctx.head_line = head_line.text
 

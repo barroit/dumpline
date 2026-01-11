@@ -5,120 +5,130 @@
 dnl
 include(helper.panel/node.m4)dnl
 
+import { canvas } from '../panel/index.js'
+
 import { list_head, list_add } from './list.js'
 
 const svg_ns = 'http://www.w3.org/2000/svg'
-const chunk_svg = document.createElementNS(svg_ns, 'svg')
-const chunk_foreign_object = document.createElementNS(svg_ns, 'foreignObject')
-const chunk_node = chunk_svg
+const ck_svg = document.createElementNS(svg_ns, 'svg')
+const ck_foreign_object = document.createElementNS(svg_ns, 'foreignObject')
+const ck_node = ck_svg
 
-chunk_foreign_object.setAttribute('width', '100%')
-chunk_foreign_object.setAttribute('height', '100%')
+ck_foreign_object.setAttribute('width', '100%')
+ck_foreign_object.setAttribute('height', '100%')
 
-chunk_svg.setAttribute('xmlns', svg_ns)
-chunk_svg.setAttribute('width', '100%')
-chunk_svg.setAttribute('height', '100%')
-chunk_svg.appendChild(chunk_foreign_object)
+ck_svg.setAttribute('xmlns', svg_ns)
+ck_svg.appendChild(ck_foreign_object)
 
-function fill_chunk(chunk, lines, arr_cap)
+function setup_width(ck, tree, wbase, indent)
 {
-	const style_box = CHUNK_DATA_OF(chunk)
-	const arr = new Array(arr_cap)
-	let i
+	const box = tree.cloneNode(false)
+	const node = tree.children[wbase].cloneNode(true)
 
-	for (i = 0; i < arr_cap; i++)
-		arr[i] = lines[i]
-
-	style_box.append(...arr)
-}
-
-function update_chunk_width(chunk_live, sample_live)
-{
-	const sample = sample_live.cloneNode(true)
-	const chunk = chunk_live.cloneNode(true)
-
-	const style_box = CHUNK_DATA_OF(chunk)
-	const indent = Number(style_box.dataset.indent)
+	box.append(node)
 
 	if (indent)
-		CHILD_TEXT_OF(sample) = CHILD_TEXT_OF(sample).slice(indent)
+		CHILD_TEXT_OF(node) = CHILD_TEXT_OF(node).slice(indent)
 
-	fill_chunk(chunk, [ sample ], 1)
-	chunk.style.visibility = 'hidden'
-	canvas.appendChild(chunk)
+	box.style.visibility = 'hidden'
+	canvas.appendChild(box)
 
-	const rect = style_box.getBoundingClientRect()
+	const rect = box.getBoundingClientRect()
 	const width = rect.width
 
-	canvas.removeChild(chunk)
-	chunk_live.setAttribute('width', width)
+	canvas.removeChild(box)
+	ck.setAttribute('width', width)
 }
 
-function update_chunk_height(chunk, nr_lines)
+function setup_height(ck, lines)
 {
-	const box = CHUNK_DATA_OF(chunk)
+	const box = CHUNK_DATA_OF(ck)
 	const line_height = parseInt(box.style.lineHeight)
-	const height = line_height * nr_lines
+	const height = line_height * lines
 
-	chunk.setAttribute('height', height)
+	ck.setAttribute('height', height)
 }
 
-function setup_chunk(chunk, chunk_size, tree, sample)
+export function chunk_init(size, tree, wbase, indent)
 {
-	const style_box = tree.cloneNode(false)
-	const indent = style_box.dataset.indent
+	const box = tree.cloneNode(false)
+	const ck = ck_node.cloneNode(true)
 
 	if (indent)
-		style_box.style.transform = `translateX(-${indent}ch)`
+		box.style.transform = `translateX(-${indent}ch)`
 
-	CHILD_OF(chunk).appendChild(style_box)
+	CHILD_OF(ck).appendChild(box)
 
-	update_chunk_width(chunk, sample)
-	update_chunk_height(chunk, chunk_size)
+	setup_width(ck, tree, wbase, indent)
+	setup_height(ck, size)
+
+	return ck
 }
 
-export function chunk_parse(tree, chunk_size)
+function fill_chunk(ck, lines, size)
+{
+	const box = CHUNK_DATA_OF(ck)
+	const arr = new Array(size)
+	let idx
+
+	for (idx = 0; idx < size; idx++)
+		arr[idx] = lines[idx]
+
+	box.append(...arr)
+}
+
+export function chunk_parse(ck, tree, size)
 {
 	const lines = tree.children
-	const wd_base = tree.dataset.wd_base
-	const chunk_tmpl = chunk_node.cloneNode(true)
-
 	let nr = lines.length
 	const ret = []
 
-	setup_chunk(chunk_tmpl, chunk_size, tree, lines[wd_base])
-
 	while (nr != 0) {
-		if (chunk_size > nr) {
-			chunk_size = nr
-			update_chunk_height(chunk_tmpl, nr)
+		const ck_cp = ck.cloneNode(true)
+
+		if (size > nr) {
+			size = nr
+			setup_height(ck_cp, nr)
 		}
 
-		const chunk = chunk_tmpl.cloneNode(true)
-
-		fill_chunk(chunk, lines, chunk_size)
-
-		ret.push(chunk)
-		nr -= chunk_size
+		fill_chunk(ck_cp, lines, size)
+		ret.push(ck_cp)
+		nr -= size
 	}
 
 	return ret
 }
 
-export function chunk_merge(input, chunk_size)
+export function chunk_balence_fast(cks)
 {
-	const cap = Math.ceil(input.length / chunk_size)
+	const bkts = new Array({ length: cks.length })
+	let idx
+
+	for (idx = 0; idx < cks.length; idx++) {
+		const head = new list_head()
+		const node = new list_head(cks[idx])
+
+		list_add(node, head)
+		bkts[idx] = head
+	}
+
+	return bkts
+}
+
+function merge_wgt(wgts, size)
+{
+	const cap = Math.ceil(wgts.length / size)
 	const out = new Array(cap)
 
 	let out_idx = 0
 	let idx
 
-	for (idx = 0; idx < input.length; ) {
+	for (idx = 0; idx < wgts.length; ) {
 		let sum = 0
-		const end = idx + chunk_size
+		const end = idx + size
 
-		for (; idx < end && idx < input.length; idx++)
-			sum += input[idx]
+		for (; idx < end && idx < wgts.length; idx++)
+			sum += wgts[idx]
 
 		out[out_idx++] = sum
 	}
@@ -126,53 +136,29 @@ export function chunk_merge(input, chunk_size)
 	return out
 }
 
-function fast_balence(chunks)
+export function chunk_balence_slow(cks, ln_wgts, ck_size, max_bkt)
 {
-	const buckets = new Array({ length: chunks.length })
-	let idx
+	const wgts = merge_wgt(ln_wgts, ck_size)
+	const idxs = Array.from({ length: wgts.length }, (_, i) => i)
+	const bkts = Array.from({ length: max_bkt },
+				() => ([ 0, new list_head() ]))
 
-	for (idx = 0; idx < chunks.length; idx++) {
-		const head = new list_head()
-		const node = new list_head(chunks[idx])
+	idxs.sort((a, b) => wgts[b] - wgts[a])
 
-		list_add(node, head)
-		buckets[idx] = head
-	}
-
-	return buckets
-}
-
-function slow_balence(chunks, weights, bucket_size)
-{
-	const indexes = Array.from({ length: weights.length }, (_, i) => i)
-	const buckets = Array.from({ length: bucket_size },
-				   () => ([ 0, new list_head() ]))
-
-	indexes.sort((a, b) => weights[b] - weights[a])
-
-	for (const idx of indexes) {
+	for (const idx of idxs) {
 		let min = 0
 		let cur
 
-		for (cur = 1; cur < bucket_size; cur++) {
-			if (buckets[cur][0] < buckets[min][0])
+		for (cur = 1; cur < max_bkt; cur++) {
+			if (bkts[cur][0] < bkts[min][0])
 				min = cur
 		}
 
-		const chunk = chunks[idx]
-		const node = new list_head(chunk)
+		const node = new list_head(cks[idx])
 
-		buckets[min][0] += weights[idx]
-		list_add(node, buckets[min][1])
+		bkts[min][0] += wgts[idx]
+		list_add(node, bkts[min][1])
 	}
 
-	return buckets.map(([ _, head ]) => head)
-}
-
-export function chunk_balence(chunks, weights, bucket_size)
-{
-	if (chunks.length <= bucket_size)
-		return fast_balence(chunks)
-	else
-		return slow_balence(chunks, weights, bucket_size)
+	return bkts.map(([ _, head ]) => head)
 }
