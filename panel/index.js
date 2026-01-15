@@ -15,6 +15,11 @@ import {
 } from '../helper.panel/chunk.js'
 import { html_resolve_str, html_parse_str } from '../helper.panel/html.js'
 import { error, warn, info } from '../helper.panel/mesg.js'
+import {
+	render_init_ctx,
+	render_window_once,
+	render_window,
+} from '../helper.panel/render.js'
 import { style_init_root, style_resolve } from '../helper.panel/style.js'
 import {
 	tree_canonicalize,
@@ -29,9 +34,10 @@ import { utf16_init } from '../helper.panel/utf16.js'
 
 export const webview = acquireVsCodeApi()
 let ctx
+const listeners = []
 
 export const canvas = document.getElementById('canvas')
-const root = document.documentElement
+export const root = document.documentElement
 
 function recv_mesg(event)
 {
@@ -39,6 +45,14 @@ function recv_mesg(event)
 	ctx.ready = 1
 
 	document.execCommand('paste')
+}
+
+function cleanup_listeners()
+{
+	let desc
+
+	while (desc = listeners.pop())
+		window.removeEventListener(...desc)
 }
 
 function setup_tree(tree, ctx, wgts, delta)
@@ -67,10 +81,8 @@ function setup_tree(tree, ctx, wgts, delta)
 		delta.wd_base -= head_drop
 	}
 
-	if (!tree.hasChildNodes()) {
-		warn(webview, 'nothing to be done')
-		return 1
-	}
+	if (!tree.hasChildNodes())
+		return
 
 	if (!ctx['no-lineno'])
 		tree_setup_lineno(tree, ctx)
@@ -89,27 +101,49 @@ function setup_tree(tree, ctx, wgts, delta)
 	delta.indent = indent
 }
 
-function setup_canvas(ctx)
+function setup_canvas(ck, ctx, line_h)
 {
-	const line_height_str = style_resolve(ctx.style, '--39-line-height')
-	const line_height = parseInt(line_height_str)
-
 	const lines = ctx.row_end - ctx.row_begin + 1
-	const canvas_h = line_height * lines
+	const canvas_h = line_h * lines
+	const canvas_w = ck.getAttribute('width')
 
+	canvas.style.width = `${canvas_w}px`
 	canvas.style.height = `${canvas_h}px`
+}
+
+function on_scroll(last_y, on_frame)
+{
+	if (window.scrollY == last_y[0])
+		return
+
+	last_y[0] = window.scrollY
+	window.requestAnimationFrame(on_frame)
+}
+
+function enable_rendering(cks, ck_size, line_h)
+{
+	const last_y = [ 0 ]
+	const ctx = render_init_ctx(listeners, line_h, ck_size, cks.length)
+
+	const render_window_fn = render_window.bind(undefined, cks, ctx)
+	const on_scroll_fn = on_scroll.bind(undefined, last_y, render_window_fn)
+	const on_scroll_desc = [ 'scroll' , on_scroll_fn ]
+
+	listeners.push(on_scroll_desc)
+	window.addEventListener(...on_scroll_desc, { passive: true })
+
+	render_window_once(cks, ctx)
 }
 
 function on_paste(event)
 {
-	let err
-
 	if (!ctx.ready)
 		return
+	ctx.ready = 0
 
+	cleanup_listeners()
 	utf16_init(ctx)
 
-	ctx.ready = 0
 	ctx.style = getComputedStyle(canvas)
 
 	if (!root.dataset.ready) {
@@ -123,9 +157,12 @@ function on_paste(event)
 	const tree = html_parse_str(html)
 	const delta = { wbase, indent: 0 }
 
-	err = setup_tree(tree, ctx, ln_wgts, delta)
-	if (err)
+	setup_tree(tree, ctx, ln_wgts, delta)
+
+	if (!tree.hasChildNodes()) {
+		warn(webview, 'nothing to be done')
 		return
+	}
 
 	const ck_size = ctx.tune.max_chunk_size
 	const max_wk = ctx.tune.max_worker
@@ -139,8 +176,11 @@ function on_paste(event)
 	else
 		tasks = chunk_balence_slow(cks, ln_wgts, ck_size, max_wk)
 
-	// canvas.append(...cks)
-	// setup_canvas(ctx)
+	const line_h_str = style_resolve(ctx.style, '--39-line-height')
+	const line_h = parseInt(line_h_str)
+
+	setup_canvas(ck_node, ctx, line_h)
+	enable_rendering(cks, ck_size, line_h)
 }
 
 document.addEventListener('paste', on_paste)

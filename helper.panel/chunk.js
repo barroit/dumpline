@@ -25,7 +25,7 @@ function setup_width(ck, tree, wbase, indent)
 	const box = tree.cloneNode(false)
 	const node = tree.children[wbase].cloneNode(true)
 
-	box.append(node)
+	box.appendChild(node)
 
 	if (indent)
 		CHILD_TEXT_OF(node) = CHILD_TEXT_OF(node).slice(indent)
@@ -65,21 +65,22 @@ export function chunk_init(size, tree, wbase, indent)
 	return ck
 }
 
-function fill_chunk(ck, lines, size)
+function fill_chunk(ck, lines, size, buf)
 {
 	const box = CHUNK_DATA_OF(ck)
-	const arr = new Array(size)
 	let idx
 
 	for (idx = 0; idx < size; idx++)
-		arr[idx] = lines[idx]
+		buf[idx] = lines[idx]
 
-	box.append(...arr)
+	box.append(...buf)
 }
 
 export function chunk_parse(ck, tree, size)
 {
 	const lines = tree.children
+	let buf = new Array(size)
+
 	let nr = lines.length
 	const ret = []
 
@@ -88,10 +89,12 @@ export function chunk_parse(ck, tree, size)
 
 		if (size > nr) {
 			size = nr
+			buf = new Array(size)
 			setup_height(ck_cp, nr)
 		}
 
-		fill_chunk(ck_cp, lines, size)
+		fill_chunk(ck_cp, lines, size, buf)
+
 		ret.push(ck_cp)
 		nr -= size
 	}
