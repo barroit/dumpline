@@ -6,6 +6,7 @@ define([[CHILD_OF]],      [[$1.firstChild]])
 define([[LAST_CHILD_OF]], [[$1.lastChild]])
 define([[NEXT_CHILD_OF]], [[$1.nextSibling]])
 
+define([[PARENT_OF]], [[$1.parentElement]])
 define([[TEXT_OF]], [[$1.textContent]])
 define([[CHILD_TEXT_OF]], [[TEXT_OF(CHILD_OF($1))]])
 

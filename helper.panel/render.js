@@ -2,6 +2,8 @@
 /*
  * Copyright 2026 Jiamu Sun <barroit@linux.com>
  */
+dnl
+include(helper.panel/node.m4)dnl
 
 import { canvas, root } from '../panel/index.js'
 
@@ -66,7 +68,7 @@ function add_chunk(cks, begin, end, ck_h)
 function del_chunk(cks, begin, end)
 {
 	for (; begin < end; begin++)
-		cks[begin].remove()
+		PARENT_OF(cks[begin]).remove()
 }
 
 function slide_window(cks, prev_begin, begin, prev_end, end, ck_h)
