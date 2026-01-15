@@ -60,9 +60,19 @@ function reset_panel()
 	panel = undefined
 }
 
-function dump_binary()
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+
+let tmp = tmpdir()
+
+tmp = mkdtempSync(`${ tmp }/dumpline-`)
+
+function dump_binary([ png_dirty, idx ])
 {
-	//
+	const buf = Buffer.from(png_dirty)
+
+	writeFileSync(`${tmp}/${idx}.png`, buf)
+	console.log(tmp)
 }
 
 async function exec_once()

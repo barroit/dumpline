@@ -21,6 +21,12 @@ lf_div.appendChild(lf_span)
 lf_div.appendChild(lf_br)
 lf_div.dataset.empty = ''
 
+const lineno_span = document.createElement('span')
+const lineno_node = lineno_span
+
+lineno_span.style.paddingRight = '2ch'
+lineno_span.style.color = 'var(--39-lineno-color)'
+
 export function tree_canonicalize(tree)
 {
 	trace_start('__filename__:html_canonicalize')
@@ -146,8 +152,10 @@ export function tree_setup_lineno(tree, ctx)
 
 	do {
 		const idx = calc_digit_width(line)
+		const lineno = lineno_node.cloneNode()
 
-		next.dataset.lineno = `${pad[idx]}${line}`
+		TEXT_OF(lineno) = pad[idx] + line
+		next.prepend(lineno)
 		line++
 	} while (next = NEXT_CHILD_OF(next))
 

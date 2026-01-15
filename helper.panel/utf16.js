@@ -3,8 +3,8 @@
  * Copyright 2026 Jiamu Sun <barroit@linux.com>
  */
 
-const cls_info = document.getElementById('utf16_class')
-const cls_su_info = document.getElementById('utf16_class_su')
+const cls_info = document.getElementById('utf16_class_uri')
+const cls_su_info = document.getElementById('utf16_class_su_uri')
 
 const cls_uri = cls_info.dataset.uri
 const cls_su_uri = cls_su_info.dataset.uri

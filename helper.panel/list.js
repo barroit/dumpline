@@ -11,32 +11,32 @@ export class list_head {
 	}
 }
 
-function __list_add(node, prev, next)
+function __list_add(entry, prev, next)
 {
-	next.prev = node
-	node.next = next
-	node.prev = prev
-	prev.next = node
+	next.prev = entry
+	entry.next = next
+	entry.prev = prev
+	prev.next = entry
 }
 
-export function list_add(node, head)
+export function list_add(entry, head)
 {
-	__list_add(node, head, head.next)
+	__list_add(entry, head, head.next)
 }
 
-export function list_add_tail(node, head)
+export function list_add_tail(entry, head)
 {
-	__list_add(node, head.prev, head)
+	__list_add(entry, head.prev, head)
 }
 
-export function list_del(node)
+export function list_del(entry)
 {
-	const prev = node.prev
-	const next = node.next
+	const prev = entry.prev
+	const next = entry.next
 
 	next.prev = prev
 	prev.next = next
 
-	node.prev = undefined
-	node.next = undefined
+	entry.prev = undefined
+	entry.next = undefined
 }

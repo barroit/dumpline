@@ -9,8 +9,10 @@ panel-prefix  := $(prefix)/panel
 module-prefix := node_modules
 
 html-in   := $(wildcard panel/*.html)
-html-m4-y := $(addprefix $(syth-prefix)/,$(html-in))
+html-m4-y := $(call add_syth,$(html-in))
 html-y    := $(panel-prefix)/index.html
+
+prem4 := $(html-y)
 
 $(html-m4-y): $(syth-prefix)/%: %
 	mkdir -p $(@D)
@@ -28,8 +30,11 @@ $(packages-y): $(module-prefix)/%/$(package-y):
 	touch $(package-y).in
 
 panel-in   := panel/index.js $(wildcard helper.panel/*.js)
-panel-m4-y := $(addprefix $(syth-prefix)/,$(panel-in))
+panel-m4-y := $(call add_syth,$(panel-in))
 panel-y    := $(panel-prefix)/index.js
+
+m4-in += $(panel-in)
+bundle-y += $(panel-y)
 
 $(panel-y)1: $(panel-m4-y) $(packages-y)
 	mkdir -p $(@D)
@@ -38,11 +43,15 @@ $(panel-y)1: $(panel-m4-y) $(packages-y)
 css-in := $(wildcard panel/*.html)
 css-y  := $(panel-prefix)/index.css
 
+archive-in += $(css-y)
+
 $(css-y): $(css-in) $(packages-y)
 	mkdir -p $(@D)
 	$(tailwindcss) --cwd panel >$@
 
 utf16-class-y := $(panel-prefix)/utf16_class
+
+archive-in += $(utf16-class-y)
 
 $(utf16-class-y): scripts/gen-char-class.py
 	$< $@
@@ -60,9 +69,3 @@ predistclean := predistclean
 predistclean:
 	rm -f $(utf16-class-y)*
 	find $(module-prefix) -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
-
-m4-in += $(panel-in)
-archive-in += $(css-y) $(utf16-class-y)
-
-bundle-y += $(panel-y)
-prem4    := $(html-y)

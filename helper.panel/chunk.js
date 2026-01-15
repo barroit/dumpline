@@ -109,7 +109,7 @@ export function chunk_balence_fast(cks)
 
 	for (idx = 0; idx < cks.length; idx++) {
 		const head = new list_head()
-		const node = new list_head(cks[idx])
+		const node = new list_head([ cks[idx], idx ])
 
 		list_add(node, head)
 		bkts[idx] = head
@@ -157,7 +157,7 @@ export function chunk_balence_slow(cks, ln_wgts, ck_size, max_bkt)
 				min = cur
 		}
 
-		const node = new list_head(cks[idx])
+		const node = new list_head([ cks[idx], idx ])
 
 		bkts[min][0] += wgts[idx]
 		list_add(node, bkts[min][1])

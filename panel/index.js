@@ -30,6 +30,7 @@ import {
 	tree_setup_lineno,
 	tree_pad_head,
 } from '../helper.panel/tree.js'
+import { task_init, task_run } from '../helper.panel/task.js'
 import { utf16_init } from '../helper.panel/utf16.js'
 
 export const webview = acquireVsCodeApi()
@@ -105,7 +106,7 @@ function setup_canvas(ck, ctx, line_h)
 {
 	const lines = ctx.row_end - ctx.row_begin + 1
 	const canvas_h = line_h * lines
-	const canvas_w = ck.getAttribute('width')
+	const canvas_w = ck.width.baseVal.value
 
 	canvas.style.width = `${canvas_w}px`
 	canvas.style.height = `${canvas_h}px`
@@ -133,6 +134,27 @@ function enable_rendering(cks, ck_size, line_h)
 	window.addEventListener(...on_scroll_desc, { passive: true })
 
 	render_window_once(cks, ctx)
+}
+
+function run_tasks(tasks, max_wk)
+{
+	const ctx = task_init(max_wk)
+	const heads = Array.from(tasks)
+
+	tasks.forEach((head, idx, arr) => arr[idx] = head.next)
+
+	let idx
+	let idle
+
+	for (idx = 0, idle = 0; idle < max_wk; idx++, idx %= max_wk) {
+		if (tasks[idx] === heads[idx]) {
+			idle++
+			continue
+		}
+
+		task_run(ctx, tasks[idx].val[0], tasks[idx].val[1], idx)
+		tasks[idx] = tasks[idx].next
+	}
 }
 
 function on_paste(event)
@@ -165,22 +187,26 @@ function on_paste(event)
 	}
 
 	const ck_size = ctx.tune.max_chunk_size
-	const max_wk = ctx.tune.max_worker
+	let max_wk = ctx.tune.max_worker
 
 	const ck_node = chunk_init(ck_size, tree, delta.wbase, delta.indent)
 	const cks = chunk_parse(ck_node, tree, ck_size)
 	let tasks
 
-	if (cks.length <= max_wk)
-		tasks = chunk_balence_fast(cks)
-	else
+	if (cks.length > max_wk) {
 		tasks = chunk_balence_slow(cks, ln_wgts, ck_size, max_wk)
+
+	} else {
+		tasks = chunk_balence_fast(cks)
+		max_wk = cks.length
+	}
 
 	const line_h_str = style_resolve(ctx.style, '--39-line-height')
 	const line_h = parseInt(line_h_str)
 
 	setup_canvas(ck_node, ctx, line_h)
 	enable_rendering(cks, ck_size, line_h)
+	run_tasks(tasks, max_wk)
 }
 
 document.addEventListener('paste', on_paste)
