@@ -5,6 +5,7 @@
 dnl
 include(helper.patch/option.m4)dnl
 
+import { mkdirSync } from 'node:fs'
 import { platform } from 'node:process'
 
 import { error, warn, info } from '../helper/mesg.js'
@@ -12,6 +13,9 @@ import { vsc_range, vsc_env, vsc_exec_cmd } from '../helper/vsc.js'
 
 import { opt_ensure_valid } from '../helper.patch/option.js'
 import { panel_init } from '../helper.patch/panel.js'
+import { png_save, png_merge } from '../helper.patch/png.js'
+
+import { rt_dir } from '../entry.js'
 
 const cp_rich_cmd = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
 
@@ -37,42 +41,24 @@ function patch_ctx(ctx, editor, editor_config)
 
 	ctx.tabstop = editor.options.tabSize
 	ctx.lang = vsc_env.language
+
+	ctx.rt_dir = rt_dir
 }
 
 function transform_ctx(ctx)
 {
-	switch (ctx.trim) {
-	case 'trailing':
-		ctx.trim = TRIM_TAIL
-		break
-
-	case 'leading':
-		ctx.trim = TRIM_HEAD
-		break
-
-	case 'both':
-		ctx.trim = TRIM_TAIL | TRIM_HEAD
+	const trim_flag = {
+		'trailing': TRIM_TAIL,
+		'leading': TRIM_HEAD,
+		'both': TRIM_TAIL | TRIM_HEAD,
 	}
+
+	ctx.trim = trim_flag[ctx.trim]
 }
 
 function reset_panel()
 {
 	panel = undefined
-}
-
-import { mkdtempSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-
-let tmp = tmpdir()
-
-tmp = mkdtempSync(`${ tmp }/dumpline-`)
-
-function dump_binary([ png_dirty, idx ])
-{
-	const buf = Buffer.from(png_dirty)
-
-	writeFileSync(`${tmp}/${idx}.png`, buf)
-	console.log(tmp)
 }
 
 async function exec_once()
@@ -83,33 +69,22 @@ async function exec_once()
 
 function recv_mesg(event)
 {
-	const [ name, data ] = event
-	let fn
+	const fn_map = {
+		'ready': exec_once,
 
-	switch (name) {
-	case 'ready':
-		fn = exec_once
-		break
+		'dump':  png_save,
+		'merge': png_merge,
 
-	case 'open':
-		fn = vsc_env.openExternal
-		break
+		'error': error,
+		'warn':  warn,
+		'info':  info,
 
-	case 'dump':
-		fn = dump_binary
-		break
-
-	case 'error':
-		fn = error
-		break
-
-	case 'warn':
-		fn = warn
-		break
-
-	case 'info':
-		fn = info
+		'mkdir': mkdirSync,
+		'open':  vsc_env.openExternal,
 	}
+
+	const [ name, data ] = event
+	const fn = fn_map[name]
 
 	fn.call(this, data)
 }

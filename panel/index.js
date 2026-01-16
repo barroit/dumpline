@@ -121,12 +121,11 @@ function on_scroll(last_y, on_frame)
 	window.requestAnimationFrame(on_frame)
 }
 
-function enable_rendering(cks, ck_size, line_h)
+function start_rendering(cks, ctx)
 {
 	const last_y = [ 0 ]
-	const ctx = render_init_ctx(listeners, line_h, ck_size, cks.length)
-
 	const render_window_fn = render_window.bind(undefined, cks, ctx)
+
 	const on_scroll_fn = on_scroll.bind(undefined, last_y, render_window_fn)
 	const on_scroll_desc = [ 'scroll' , on_scroll_fn ]
 
@@ -136,9 +135,17 @@ function enable_rendering(cks, ck_size, line_h)
 	render_window_once(cks, ctx)
 }
 
-function run_tasks(tasks, max_wk)
+function resolve_iso_time()
 {
-	const ctx = task_init(max_wk)
+	const raw_date = new Date()
+	const iso_date = raw_date.toISOString()
+	const name = iso_date.replace(/[:.]/g, '-')
+
+	return name
+}
+
+function dump_chunks(name, tasks, ctx, max_wk)
+{
 	const heads = Array.from(tasks)
 
 	tasks.forEach((head, idx, arr) => arr[idx] = head.next)
@@ -152,7 +159,12 @@ function run_tasks(tasks, max_wk)
 			continue
 		}
 
-		task_run(ctx, tasks[idx].val[0], tasks[idx].val[1], idx)
+		const [ ck, ck_idx ] = tasks[idx].val
+
+		task_run(ctx, ck, idx, info).then(png =>
+		{
+			webview.postMessage([ 'dump', [ name, ck_idx, png ] ])
+		})
 		tasks[idx] = tasks[idx].next
 	}
 }
@@ -205,8 +217,20 @@ function on_paste(event)
 	const line_h = parseInt(line_h_str)
 
 	setup_canvas(ck_node, ctx, line_h)
-	enable_rendering(cks, ck_size, line_h)
-	run_tasks(tasks, max_wk)
+
+	const render_ctx = render_init_ctx(listeners,
+					   line_h, ck_size, cks.length)
+
+	start_rendering(cks, render_ctx)
+
+	const time = resolve_iso_time()
+	const name = `${ctx.rt_dir}/${time}`
+	const task_ctx = task_init(max_wk)
+
+	webview.postMessage([ 'mkdir', name ])
+	dump_chunks(name, tasks, task_ctx, max_wk)
+	webview.postMessage([ 'merge', name ])
+
 }
 
 document.addEventListener('paste', on_paste)

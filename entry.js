@@ -3,6 +3,9 @@
  * Copyright 2025 Jiamu Sun <barroit@linux.com>
  */
 
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+
 import {
 	vsc_fetch_config,
 	vsc_map_ctx,
@@ -13,6 +16,9 @@ const cmds = {
 	'multiple': [ import('./cmd/multiple.js'), vsc_add_editor_cmd ],
 	'single':   [ import('./cmd/single.js'),   vsc_add_editor_cmd ],
 }
+
+const tmp_dir = tmpdir()
+export const rt_dir = mkdtempSync(`${tmp_dir}/dumpline-`)
 
 export async function activate(ctx)
 {

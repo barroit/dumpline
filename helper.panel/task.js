@@ -3,8 +3,6 @@
  * Copyright 2026 Jiamu Sun <barroit@linux.com>
  */
 
-import { webview } from '../panel/index.js'
-
 import { list_head, list_add, list_del } from '../helper.panel/list.js'
 
 const xml = new XMLSerializer()
@@ -44,7 +42,7 @@ function unlock_wk(head, idx)
 	list_del(lock, head)
 }
 
-export async function task_run(ctx, ck, ck_idx, wk_idx)
+export async function task_run(ctx, ck, wk_idx)
 {
 	await lock_wk(ctx.lock[wk_idx], wk_idx)
 
@@ -54,7 +52,7 @@ export async function task_run(ctx, ck, ck_idx, wk_idx)
 
 	const img = ctx.img[wk_idx]
 	const canvas = ctx.canvas[wk_idx]
-	const canvas_ctx = canvas.getContext('2d')
+	const d2 = canvas.getContext('2d')
 
 	img.src = ck_url
 	await img.decode()
@@ -62,12 +60,11 @@ export async function task_run(ctx, ck, ck_idx, wk_idx)
 	canvas.width = img.width
 	canvas.height = img.height
 
-	canvas_ctx.drawImage(img, 0, 0)
+	d2.drawImage(img, 0, 0)
 
 	const png_blob = await canvas.convertToBlob({ type: 'image/png' })
-	const png_buf = await png_blob.arrayBuffer()
-
-	webview.postMessage([ 'dump', [ png_buf, ck_idx ] ])
+	const png_buf = png_blob.arrayBuffer()
 
 	unlock_wk(ctx.lock[wk_idx], wk_idx)
+	return png_buf
 }
