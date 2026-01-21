@@ -22,21 +22,26 @@ $(html-y): $(prefix)/%: $(html-m4-y)
 	mkdir -p $(@D)
 	$(m4) $* >$@
 
-packages-y := $(addprefix $(module-prefix)/,$(npm-packages))
-packages-y := $(addsuffix /$(package-y),$(packages-y))
+packages-in := $(addprefix $(module-prefix)/,$(npm-packages))
+packages-y  := $(addsuffix /$(package-y),$(packages-in))
 
 $(packages-y): $(module-prefix)/%/$(package-y):
 	$(npm) $*
 	touch $(package-y).in
 
-panel-in   := panel/index.js $(wildcard helper.panel/*.js)
+helper-panel-in   := $(wildcard helper.panel/*.js)
+helper-panel-m4-y := $(call add_syth,$(helper-panel-in))
+
+m4-y += $(helper-panel-m4-y)
+
+panel-in   := panel/index.js
 panel-m4-y := $(call add_syth,$(panel-in))
 panel-y    := $(panel-prefix)/index.js
 
-m4-in += $(panel-in)
+m4-y += $(panel-m4-y)
 bundle-y += $(panel-y)
 
-$(panel-y)1: $(panel-m4-y) $(packages-y)
+$(panel-y)1: $(panel-m4-y) $(helper-panel-m4-y) $(packages-y)
 	mkdir -p $(@D)
 	$(esbuild) --sourcemap=inline --outfile=$@ $<
 
@@ -52,6 +57,22 @@ $(css-y): $(css-in) $(packages-y)
 utf16-class-y := $(panel-prefix)/utf16_class
 
 archive-in += $(utf16-class-y)
+
+helper-worker-in   := $(wildcard helper.worker/*.js)
+helper-worker-m4-y := $(call add_syth,$(helper-worker-in))
+
+m4-y += $(helper-worker-m4-y)
+
+worker-in   := worker/index.js
+worker-m4-y := $(call add_syth,$(worker-in))
+worker-y    := $(panel-prefix)/worker.js
+
+m4-y += $(worker-m4-y)
+bundle-y += $(worker-y)
+
+$(worker-y)1: $(worker-m4-y) $(helper-panel-m4-y) $(helper-worker-m4-y)
+	mkdir -p $(@D)
+	$(esbuild) --sourcemap=inline --outfile=$@ $<
 
 $(utf16-class-y): scripts/gen-char-class.py
 	$< $@

@@ -17,10 +17,10 @@ export async function png_render(_1, ctx, _2, panel)
 
 export function png_save([ prefix, idx, png_dirty ])
 {
-	const buf = Buffer.from(png_dirty)
-	const name = `${prefix}/${idx}.png`
+	// const buf = Buffer.from(png_dirty)
+	// const name = `${prefix}/${idx}.png`
 
-	writeFileSync(name, buf)
+	// writeFileSync(name, buf)
 }
 
 export function png_merge(prefix)

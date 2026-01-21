@@ -34,6 +34,9 @@ export function panel_gen_html(webview, prefix_in)
 	const script_uri = vsc_uri.joinPath(prefix, 'index.js')
 	const script = webview.asWebviewUri(script_uri)
 
+	const worker_uri = vsc_uri.joinPath(prefix, 'worker.js')
+	const worker = webview.asWebviewUri(worker_uri)
+
 	const utf16_class_uri = vsc_uri.joinPath(prefix, 'utf16_class')
 	const utf16_class = webview.asWebviewUri(utf16_class_uri)
 
