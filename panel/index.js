@@ -30,7 +30,7 @@ import {
 	tree_setup_lineno,
 	tree_pad_head,
 } from '../helper.panel/tree.js'
-import { task_init, task_run } from '../helper.panel/task.js'
+import { dump_init, dump_render } from '../helper.panel/dump.js'
 import { utf16_init } from '../helper.panel/utf16.js'
 
 export const webview = acquireVsCodeApi()
@@ -42,10 +42,21 @@ export const root = document.documentElement
 
 function recv_mesg(event)
 {
-	ctx = event.data
-	ctx.ready = 1
+	const [ name, data ] = event.data
 
-	document.execCommand('paste')
+	switch (name) {
+	case 'render':
+		ctx = data
+		ctx.ready = 1
+
+		document.execCommand('paste')
+		break
+
+	case 'mkdir_done':
+		break
+
+	case 'merge_done':
+	}
 }
 
 function cleanup_listeners()
@@ -144,14 +155,18 @@ function resolve_iso_time()
 	return name
 }
 
-function dump_chunks(name, tasks, ctx, max_wk)
+function emit_png(prefix, ck_idx, data)
 {
+	webview.postMessage([ 'dump', [ prefix, ck_idx, data ] ])
+}
+
+function dump_dispatch(ctx, tasks, prefix, max_wk)
+{
+	let idx
+	let idle
 	const heads = Array.from(tasks)
 
 	tasks.forEach((head, idx, arr) => arr[idx] = head.next)
-
-	let idx
-	let idle
 
 	for (idx = 0, idle = 0; idle < max_wk; idx++, idx %= max_wk) {
 		if (tasks[idx] === heads[idx]) {
@@ -160,11 +175,10 @@ function dump_chunks(name, tasks, ctx, max_wk)
 		}
 
 		const [ ck, ck_idx ] = tasks[idx].val
+		const emit_png_fn = emit_png.bind(undefined, prefix, ck_idx)
+		const task = dump_render(ctx, ck, idx, info)
 
-		task_run(ctx, ck, idx, info).then(png =>
-		{
-			webview.postMessage([ 'dump', [ name, ck_idx, png ] ])
-		})
+		task.then(emit_png_fn)
 		tasks[idx] = tasks[idx].next
 	}
 }
@@ -224,13 +238,16 @@ function on_paste(event)
 	start_rendering(cks, render_ctx)
 
 	const time = resolve_iso_time()
-	const name = `${ctx.rt_dir}/${time}`
-	const task_ctx = task_init(max_wk)
+	const prefix = `${ctx.rt_dir}/${time}`
+	const dump_ctx = dump_init(max_wk)
 
-	webview.postMessage([ 'mkdir', name ])
-	dump_chunks(name, tasks, task_ctx, max_wk)
-	webview.postMessage([ 'merge', name ])
+	// dangerous
+	webview.postMessage([ 'mkdir', prefix ])
 
+	dump_dispatch(dump_ctx, tasks, prefix, max_wk)
+
+	// dangerous
+	webview.postMessage([ 'merge', prefix ])
 }
 
 document.addEventListener('paste', on_paste)

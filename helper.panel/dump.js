@@ -8,7 +8,7 @@ import { list_head, list_add, list_del } from '../helper.panel/list.js'
 const xml = new XMLSerializer()
 const node_to_xml = xml.serializeToString.bind(xml)
 
-export function task_init(size)
+export function dump_init(size)
 {
 	const ctx = {}
 	const arr_in = { length: size }
@@ -42,7 +42,7 @@ function unlock_wk(head, idx)
 	list_del(lock, head)
 }
 
-export async function task_run(ctx, ck, wk_idx)
+export async function dump_render(ctx, ck, wk_idx)
 {
 	await lock_wk(ctx.lock[wk_idx], wk_idx)
 

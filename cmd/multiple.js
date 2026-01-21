@@ -9,17 +9,16 @@ import { mkdirSync } from 'node:fs'
 import { platform } from 'node:process'
 
 import { error, warn, info } from '../helper/mesg.js'
-import { vsc_range, vsc_env, vsc_exec_cmd } from '../helper/vsc.js'
+import { vsc_env, vsc_uri } from '../helper/vsc.js'
 
 import { opt_ensure_valid } from '../helper.patch/option.js'
-import { panel_init } from '../helper.patch/panel.js'
-import { png_save, png_merge } from '../helper.patch/png.js'
+import { panel_init, panel_gen_html } from '../helper.patch/panel.js'
+import { png_render, png_save, png_merge } from '../helper.patch/png.js'
 
 import { rt_dir } from '../entry.js'
 
-const cp_rich_cmd = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
-
 let panel
+let ext
 
 function patch_ctx(ctx, editor, editor_config)
 {
@@ -56,22 +55,10 @@ function transform_ctx(ctx)
 	ctx.trim = trim_flag[ctx.trim]
 }
 
-function reset_panel()
-{
-	panel = undefined
-}
-
-async function exec_once()
-{
-	await vsc_exec_cmd(cp_rich_cmd)
-	panel.webview.postMessage(this)
-}
-
-function recv_mesg(event)
+export async function recv_event([ name, data ])
 {
 	const fn_map = {
-		'ready': exec_once,
-
+		'ready': png_render,
 		'dump':  png_save,
 		'merge': png_merge,
 
@@ -83,26 +70,43 @@ function recv_mesg(event)
 		'open':  vsc_env.openExternal,
 	}
 
-	const [ name, data ] = event
+	const [ ctx, ext, panel ] = this
 	const fn = fn_map[name]
 
-	fn.call(this, data)
+	await fn(data, ctx, ext, panel)
+	panel.webview.postMessage([ `${name}_done` ])
+}
+
+function reset_panel()
+{
+	panel = undefined
 }
 
 export async function exec(editor)
 {
-	const ctx = this.fetch_config('dumpline')
-	const editor_config = this.fetch_config('editor')
+	const ext = this
+	const config = ext.fetch_config('dumpline')
+	const editor_config = ext.fetch_config('editor')
 
-	opt_ensure_valid(ctx)
-	patch_ctx(ctx, editor, editor_config)
-	transform_ctx(ctx)
+	opt_ensure_valid(config)
+	patch_ctx(config, editor, editor_config)
+	transform_ctx(config)
 
 	if (panel) {
 		panel.reveal(panel.viewColumn, true)
-		exec_once.call(ctx)
-
-	} else {
-		panel = panel_init(this, recv_mesg, ctx, reset_panel)
+		event_recv.call([ config, ext, panel ], [ 'ready' ])
+		return
 	}
+
+	panel = panel_init(ext)
+
+	const webview = panel.webview
+	const prefix = ext.binary.uri
+
+	webview.html = panel_gen_html(webview, prefix)
+	webview.onDidReceiveMessage(recv_event,
+				    [ config, ext, panel ], ext.cleanup)
+
+	panel.onDidDispose(reset_panel, undefined, ext.cleanup)
+	panel.iconPath = vsc_uri.joinPath(prefix, 'image', 'negi.svg')
 }
