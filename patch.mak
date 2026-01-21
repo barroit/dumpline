@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-npm-packages := pngjs tailwindcss
+npm-packages := tailwindcss
 
 tailwindcss ?= tailwindcss
 tailwindcss += --minify

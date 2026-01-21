@@ -10,7 +10,6 @@ dnl
       "vscode": "^1.74.0"
    },
    "devDependencies": {
-      "pngjs": "^7.0.0",
       "tailwindcss": "^4.1.18"
    },
    "contributes": {
