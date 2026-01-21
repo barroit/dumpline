@@ -5,6 +5,7 @@
 dnl
 include(helper.patch/option.m4)dnl
 
+import crypto from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { platform } from 'node:process'
 
@@ -25,6 +26,12 @@ function patch_ctx(ctx, editor, editor_config)
 	const select = editor.selection
 	const doc = editor.document
 
+	const rand = crypto.randomBytes(16)
+	const nonce = rand.toString('base64')
+
+	ctx.id = nonce
+	ctx.rt_dir = rt_dir
+
 	ctx.row_begin = select.start.line
 	ctx.col_begin = select.start.character
 
@@ -40,8 +47,6 @@ function patch_ctx(ctx, editor, editor_config)
 
 	ctx.tabstop = editor.options.tabSize
 	ctx.lang = vsc_env.language
-
-	ctx.rt_dir = rt_dir
 }
 
 function transform_ctx(ctx)
@@ -74,7 +79,7 @@ export async function recv_event([ name, data ])
 	const fn = fn_map[name]
 
 	await fn(data, ctx, ext, panel)
-	panel.webview.postMessage([ `${name}_done` ])
+	panel.webview.postMessage([ `${name}_done`, data, ctx ])
 }
 
 function reset_panel()

@@ -34,29 +34,71 @@ import { dump_init, dump_render } from '../helper.panel/dump.js'
 import { utf16_init } from '../helper.panel/utf16.js'
 
 export const webview = acquireVsCodeApi()
-let ctx
+let __ctx
 const listeners = []
+const locks = new Map()
+const dumps = new Map()
 
 export const canvas = document.getElementById('canvas')
 export const root = document.documentElement
 
+function lock(key)
+{
+	let resolve
+	const promise = new Promise(r => resolve = r)
+
+	locks.set(key, resolve)
+	return promise
+}
+
+function unlock(key)
+{
+	const resolve = locks.get(key)
+
+	resolve()
+	locks.delete(key)
+}
+
+function on_render(_, data)
+{
+	__ctx = data
+	__ctx.ready = 1
+
+	document.execCommand('paste')
+}
+
+function on_dump_done(key, [ _1, _2, _3, ck_cnt ])
+{
+	let prev = dumps.get(key)
+
+	if (!prev)
+		prev = 0
+
+	const next = prev + 1
+
+	if (next != ck_cnt) {
+		dumps.set(key, next)
+
+	} else {
+		unlock(key)
+		dumps.delete(key)
+	}
+}
+
 function recv_mesg(event)
 {
-	const [ name, data ] = event.data
-
-	switch (name) {
-	case 'render':
-		ctx = data
-		ctx.ready = 1
-
-		document.execCommand('paste')
-		break
-
-	case 'mkdir_done':
-		break
-
-	case 'merge_done':
+	const fn_map = {
+		'render': on_render,
+		'mkdir_done': unlock,
+		'dump_done': on_dump_done,
+		'merge_done': unlock,
 	}
+
+	const [ name, data, ctx ] = event.data
+	const fn = fn_map[name]
+
+	if (fn)
+		fn(ctx.id, data)
 }
 
 function cleanup_listeners()
@@ -67,7 +109,7 @@ function cleanup_listeners()
 		window.removeEventListener(...desc)
 }
 
-function setup_tree(tree, ctx, wgts, delta)
+function setup_tree(ctx, tree, wgts, delta)
 {
 	tree_canonicalize(tree)
 
@@ -113,7 +155,7 @@ function setup_tree(tree, ctx, wgts, delta)
 	delta.indent = indent
 }
 
-function setup_canvas(ck, ctx, line_h)
+function setup_canvas(ctx, ck, line_h)
 {
 	const lines = ctx.row_end - ctx.row_begin + 1
 	const canvas_h = line_h * lines
@@ -132,7 +174,7 @@ function on_scroll(last_y, on_frame)
 	window.requestAnimationFrame(on_frame)
 }
 
-function start_rendering(cks, ctx)
+function start_rendering(ctx, cks)
 {
 	const last_y = [ 0 ]
 	const render_window_fn = render_window.bind(undefined, cks, ctx)
@@ -155,12 +197,12 @@ function resolve_iso_time()
 	return name
 }
 
-function emit_png(prefix, ck_idx, data)
+function emit_png(prefix, ck_idx, ck_cnt, data)
 {
-	webview.postMessage([ 'dump', [ prefix, ck_idx, data ] ])
+	webview.postMessage([ 'dump', [ prefix, ck_idx, data, ck_cnt ] ])
 }
 
-function dump_dispatch(ctx, tasks, prefix, max_wk)
+function dispatch_tasks(ctx, tasks, ck_cnt, prefix, max_wk)
 {
 	let idx
 	let idle
@@ -175,16 +217,19 @@ function dump_dispatch(ctx, tasks, prefix, max_wk)
 		}
 
 		const [ ck, ck_idx ] = tasks[idx].val
-		const emit_png_fn = emit_png.bind(undefined, prefix, ck_idx)
-		const task = dump_render(ctx, ck, idx, info)
+		const emit_png_fn = emit_png.bind(undefined,
+						  prefix, ck_idx, ck_cnt)
+		const task = dump_render(ctx, ck, idx)
 
 		task.then(emit_png_fn)
 		tasks[idx] = tasks[idx].next
 	}
 }
 
-function on_paste(event)
+async function on_paste(event)
 {
+	const ctx = __ctx
+
 	if (!ctx.ready)
 		return
 	ctx.ready = 0
@@ -205,7 +250,7 @@ function on_paste(event)
 	const tree = html_parse_str(html)
 	const delta = { wbase, indent: 0 }
 
-	setup_tree(tree, ctx, ln_wgts, delta)
+	setup_tree(ctx, tree, ln_wgts, delta)
 
 	if (!tree.hasChildNodes()) {
 		warn(webview, 'nothing to be done')
@@ -230,24 +275,25 @@ function on_paste(event)
 	const line_h_str = style_resolve(ctx.style, '--39-line-height')
 	const line_h = parseInt(line_h_str)
 
-	setup_canvas(ck_node, ctx, line_h)
+	setup_canvas(ctx, ck_node, line_h)
 
 	const render_ctx = render_init_ctx(listeners,
 					   line_h, ck_size, cks.length)
 
-	start_rendering(cks, render_ctx)
+	start_rendering(render_ctx, cks)
 
 	const time = resolve_iso_time()
 	const prefix = `${ctx.rt_dir}/${time}`
 	const dump_ctx = dump_init(max_wk)
 
-	// dangerous
 	webview.postMessage([ 'mkdir', prefix ])
+	await lock(ctx.id)
 
-	dump_dispatch(dump_ctx, tasks, prefix, max_wk)
+	dispatch_tasks(dump_ctx, tasks, cks.length, prefix, max_wk)
+	await lock(ctx.id)
 
-	// dangerous
 	webview.postMessage([ 'merge', prefix ])
+	await lock(ctx.id)
 }
 
 document.addEventListener('paste', on_paste)
