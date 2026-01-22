@@ -30,12 +30,13 @@ import {
 	tree_setup_lineno,
 	tree_pad_head,
 } from '../helper.panel/tree.js'
-import { dump_init, dump_render } from '../helper.panel/dump.js'
+import { dump_init, dump_free, dump_render } from '../helper.panel/dump.js'
 import { utf16_init } from '../helper.panel/utf16.js'
 
 export const webview = acquireVsCodeApi()
 let __ctx
 const listeners = []
+
 const locks = new Map()
 const dumps = new Map()
 
@@ -82,6 +83,7 @@ function on_dump_done(key, [ _1, _2, _3, ck_cnt ])
 	} else {
 		unlock(key)
 		dumps.delete(key)
+		dump_free(key)
 	}
 }
 
@@ -197,32 +199,24 @@ function resolve_iso_time()
 	return name
 }
 
-function emit_png(prefix, ck_idx, ck_cnt, data)
-{
-	webview.postMessage([ 'dump', [ prefix, ck_idx, data, ck_cnt ] ])
-}
-
 function dispatch_tasks(ctx, tasks, ck_cnt, prefix, max_wk)
 {
-	let idx
+	let wk_idx
 	let idle
 	const heads = Array.from(tasks)
 
 	tasks.forEach((head, idx, arr) => arr[idx] = head.next)
 
-	for (idx = 0, idle = 0; idle < max_wk; idx++, idx %= max_wk) {
-		if (tasks[idx] === heads[idx]) {
+	for (wk_idx = 0, idle = 0; idle < max_wk; wk_idx++, wk_idx %= max_wk) {
+		if (tasks[wk_idx] === heads[wk_idx]) {
 			idle++
 			continue
 		}
 
-		const [ ck, ck_idx ] = tasks[idx].val
-		const emit_png_fn = emit_png.bind(undefined,
-						  prefix, ck_idx, ck_cnt)
-		const task = dump_render(ctx, ck, idx)
+		const [ ck, ck_idx ] = tasks[wk_idx].val
 
-		task.then(emit_png_fn)
-		tasks[idx] = tasks[idx].next
+		dump_render(ctx, ck, wk_idx, prefix, ck_idx, ck_cnt)
+		tasks[wk_idx] = tasks[wk_idx].next
 	}
 }
 
@@ -284,7 +278,7 @@ async function on_paste(event)
 
 	const time = resolve_iso_time()
 	const prefix = `${ctx.rt_dir}/${time}`
-	const dump_ctx = dump_init(max_wk)
+	const dump_ctx = dump_init(ctx.id, max_wk)
 
 	webview.postMessage([ 'mkdir', prefix ])
 	await lock(ctx.id)

@@ -63,7 +63,7 @@ helper-worker-m4-y := $(call add_syth,$(helper-worker-in))
 
 m4-y += $(helper-worker-m4-y)
 
-worker-in   := worker/index.js
+worker-in   := panel/worker.js
 worker-m4-y := $(call add_syth,$(worker-in))
 worker-y    := $(panel-prefix)/worker.js
 

@@ -15,12 +15,12 @@ export async function png_render(_1, ctx, _2, panel)
 	panel.webview.postMessage([ 'render', ctx, ctx ])
 }
 
-export function png_save([ prefix, idx, png_dirty ])
+export function png_save([ ck, prefix, ck_idx ])
 {
-	// const buf = Buffer.from(png_dirty)
-	// const name = `${prefix}/${idx}.png`
+	const buf = Buffer.from(ck)
+	const name = `${prefix}/${ck_idx}`
 
-	// writeFileSync(name, buf)
+	writeFileSync(name, buf)
 }
 
 export function png_merge(prefix)

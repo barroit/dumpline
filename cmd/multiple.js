@@ -99,7 +99,7 @@ export async function exec(editor)
 
 	if (panel) {
 		panel.reveal(panel.viewColumn, true)
-		event_recv.call([ config, ext, panel ], [ 'ready' ])
+		recv_event.call([ config, ext, panel ], [ 'ready' ])
 		return
 	}
 
