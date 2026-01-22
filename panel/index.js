@@ -19,7 +19,7 @@ import {
 	chunk_balence_slow,
 } from '../helper.panel/chunk.js'
 import { html_resolve_str, html_parse_str } from '../helper.panel/html.js'
-import { error, warn, info } from '../helper.panel/mesg.js'
+import { warn, info } from '../helper.panel/mesg.js'
 import {
 	render_init,
 	render_window_once,
@@ -39,6 +39,7 @@ import { dump_init, dump_free, dump_dispatch } from '../helper.panel/dump.js'
 import { utf16_init } from '../helper.panel/utf16.js'
 
 let __config
+const result = {}
 
 export const webview = acquireVsCodeApi()
 const cleanup = []
@@ -196,6 +197,7 @@ async function on_paste(event)
 	const line_h = parseInt(line_h_str)
 
 	setup_canvas(config, ck_node, line_h)
+	canvas.dataset.current = config.id
 
 	const render_ctx = render_init(ck_size, cks.length, line_h, cleanup)
 	const dump_ctx = dump_init(config.id, max_wk)
@@ -223,10 +225,17 @@ async function on_paste(event)
 
 	webview.postMessage([ 'merge', config.id, prefix ])
 	await seq_wait(config.id)
+
+	result.id = config.id
+	result.dir = prefix
+	result.name = `${prefix}/dump.png`
 }
 
 function on_render(config)
 {
+	result.id = 0x3939
+	delete result.cache
+
 	__config = config
 	__config.ready = 1
 
@@ -252,20 +261,76 @@ async function on_dump_done(id, ck, prefix, ck_idx, ck_cnt, w, h)
 		seq_wake(id)
 }
 
+async function write_clipboard(blob)
+{
+	const data = { [ blob.type ]: blob }
+	const item = new ClipboardItem(data)
+
+	await navigator.clipboard.write([ item ])
+	info(webview, 'image copied to clipboard')
+}
+
+function on_read_done(name, out)
+{
+	const blob = new Blob([ out.buf ], { type: 'image/png' })
+
+	write_clipboard(blob)
+	result.cache = blob
+}
+
 function recv_mesg({ data: [ name, ...data ] })
 {
 	const fn_map = {
 		'render': on_render,
-		'mkdir_done': seq_wake,
+
 		'dump_done': on_dump_done,
 		'record_done': seq_wake,
 		'merge_done': seq_wake,
+
+		'read_done': on_read_done,
+		'mkdir_done': seq_wake,
 	}
 	const fn = fn_map[name]
 
 	if (fn)
 		fn(...data)
 }
+
+function on_btn_click(fn)
+{
+	if (!canvas.dataset.current || canvas.dataset.current != result.id) {
+		warn(webview, 'image not ready')
+		return
+	}
+
+	fn()
+}
+
+function copy_file()
+{
+	if (!result.cache)
+		webview.postMessage([ 'read', result.name, {} ])
+	else
+		write_clipboard(result.cache)
+}
+
+function open_dir()
+{
+	webview.postMessage([ 'open', result.dir ])
+}
+
+function open_file()
+{
+	webview.postMessage([ 'open', result.name ])
+}
+
+const on_copy_file = on_btn_click.bind(undefined, copy_file)
+const on_open_dir = on_btn_click.bind(undefined, open_dir)
+const on_open_file = on_btn_click.bind(undefined, open_file)
+
+btn['copy_file'].addEventListener('click', on_copy_file)
+btn['open_dir'].addEventListener('click', on_open_dir)
+btn['open_file'].addEventListener('click', on_open_file)
 
 document.addEventListener('paste', on_paste)
 window.addEventListener('message', recv_mesg)

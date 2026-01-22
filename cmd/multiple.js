@@ -6,8 +6,9 @@ dnl
 include(helper.patch/option.m4)dnl
 
 import crypto from 'node:crypto'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { platform } from 'node:process'
+import { pathToFileURL } from 'node:url'
 
 import {
 	seq_wait as __seq_wait,
@@ -76,6 +77,22 @@ function on_mkdir(id, prefix)
 	mkdirSync(prefix)
 }
 
+function on_open(name)
+{
+	const url = vsc_uri.file(name)
+
+	vsc_env.openExternal(url)
+}
+
+function on_read(name, out)
+{
+	const bytes = readFileSync(name)
+	const view = new Uint8Array(bytes.buffer,
+				    bytes.byteOffset, bytes.byteLength)
+
+	out.buf = view
+}
+
 async function recv_event([ name, ...data ])
 {
 	const fn_map = {
@@ -89,8 +106,9 @@ async function recv_event([ name, ...data ])
 		'warn':  warn,
 		'info':  info,
 
+		'read':  on_read,
+		'open':  on_open,
 		'mkdir': on_mkdir,
-		'open':  vsc_env.openExternal,
 	}
 	const fn = fn_map[name]
 
