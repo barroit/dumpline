@@ -156,6 +156,10 @@ async function on_paste(event)
 	config.ready = 0
 
 	cleanup_listeners()
+
+	if (CHILD_OF(canvas))
+		CHILD_OF(canvas).remove()
+
 	utf16_init(config)
 
 	config.style = getComputedStyle(canvas)

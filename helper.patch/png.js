@@ -135,7 +135,7 @@ export async function png_merge_chunk(id, prefix)
 	write_ihdr(stream, w, h)
 
 	let idx
-	const task = new Promise(resolve => deflator.on('end', resolve))
+	const end_task = new Promise(r => deflator.on('end', r))
 
 	for (idx = 0; ; idx++) {
 		const ck_stream = stream_file(`${prefix}/${idx}`)
@@ -145,10 +145,13 @@ export async function png_merge_chunk(id, prefix)
 			break
 		}
 
-		await pipeline(ck_stream, deflator, { end: false })
+		const ck_task = new Promise(r => ck_stream.on('end', r))
+
+		ck_stream.pipe(deflator, { end: false })
+		await ck_task
 	}
 
-	await task
+	await end_task
 	write_iend(stream)
 
 	stream.end()
