@@ -3,7 +3,7 @@
  * Copyright 2026 Jiamu Sun <barroit@linux.com>
  */
 
-import { png_pick_filter } from '../helper.worker/png.js'
+import { png_pick_filter as png_acquire_filter, png_apply_filter } from '../helper.worker/png.js'
 
 const canvas = new OffscreenCanvas(39, 39)
 
@@ -17,17 +17,18 @@ function init_ck(w, h)
 
 function fill_ck(ck, rgbas, w)
 {
-	let src_idx
-	let dst_idx
 	const sl_size = w * 4
+	let src_idx = rgbas.length - sl_size
+	let dst_idx = ck.length - sl_size - 1
 
-	console.log(ck, rgbas)
+	for (; src_idx >= 0; src_idx -= sl_size, dst_idx -= sl_size + 1) {
+		const filter = png_acquire_filter(rgbas, src_idx, sl_size)
+		const src = rgbas.subarray(src_idx, src_idx + sl_size)
 
-	for (src_idx = 0, dst_idx = 0;
-	     src_idx < rgbas.length;
-	     src_idx += sl_size, dst_idx += src_idx + 1) {
+		png_apply_filter(filter, rgbas, src_idx, sl_size)
 
-		const filter = png_pick_filter(rgbas, src_idx, sl_size)
+		ck[dst_idx] = filter
+		ck.set(src, dst_idx + 1)
 	}
 }
 
