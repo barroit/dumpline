@@ -7,7 +7,7 @@ include(helper.panel/node.m4)dnl
 
 import { canvas } from '../panel/index.js'
 
-import { list_head, list_add } from './list.js'
+import { list_head, list_add } from '../helper/list.js'
 
 const svg_ns = 'http://www.w3.org/2000/svg'
 const ck_svg = document.createElementNS(svg_ns, 'svg')

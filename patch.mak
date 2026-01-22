@@ -41,7 +41,7 @@ panel-y    := $(panel-prefix)/index.js
 m4-y += $(panel-m4-y)
 bundle-y += $(panel-y)
 
-$(panel-y)1: $(panel-m4-y) $(helper-panel-m4-y) $(packages-y)
+$(panel-y)1: $(panel-m4-y) $(helper-m4-y)  $(helper-panel-m4-y) $(packages-y)
 	mkdir -p $(@D)
 	$(esbuild) --sourcemap=inline --outfile=$@ $<
 

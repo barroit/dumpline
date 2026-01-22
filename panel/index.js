@@ -6,6 +6,11 @@ dnl
 include(helper.panel/node.m4)dnl
 include(helper.patch/option.m4)dnl
 
+import {
+	seq_wait as __seq_wait,
+	seq_wake as __seq_wake,
+} from '../helper/seq.js'
+
 import btn from '../helper.panel/btn.js'
 import {
 	chunk_init,
@@ -16,7 +21,7 @@ import {
 import { html_resolve_str, html_parse_str } from '../helper.panel/html.js'
 import { error, warn, info } from '../helper.panel/mesg.js'
 import {
-	render_init_ctx,
+	render_init,
 	render_window_once,
 	render_window,
 } from '../helper.panel/render.js'
@@ -30,109 +35,53 @@ import {
 	tree_setup_lineno,
 	tree_pad_head,
 } from '../helper.panel/tree.js'
-import { dump_init, dump_free, dump_render } from '../helper.panel/dump.js'
+import { dump_init, dump_free, dump_dispatch } from '../helper.panel/dump.js'
 import { utf16_init } from '../helper.panel/utf16.js'
 
-export const webview = acquireVsCodeApi()
-let __ctx
-const listeners = []
+let __config
 
-const locks = new Map()
-const dumps = new Map()
+export const webview = acquireVsCodeApi()
+const cleanup = []
+
+const seq_map = new Map()
+const dump_map = new Map()
+
+const seq_wait = __seq_wait.bind(undefined, seq_map)
+const seq_wake = __seq_wake.bind(undefined, seq_map)
 
 export const canvas = document.getElementById('canvas')
 export const root = document.documentElement
-
-function lock(key)
-{
-	let resolve
-	const promise = new Promise(r => resolve = r)
-
-	locks.set(key, resolve)
-	return promise
-}
-
-function unlock(key)
-{
-	const resolve = locks.get(key)
-
-	resolve()
-	locks.delete(key)
-}
-
-function on_render(_, data)
-{
-	__ctx = data
-	__ctx.ready = 1
-
-	document.execCommand('paste')
-}
-
-function on_dump_done(key, [ _1, _2, _3, ck_cnt ])
-{
-	let prev = dumps.get(key)
-
-	if (!prev)
-		prev = 0
-
-	const next = prev + 1
-
-	if (next != ck_cnt) {
-		dumps.set(key, next)
-
-	} else {
-		unlock(key)
-		dumps.delete(key)
-		dump_free(key)
-	}
-}
-
-function recv_mesg(event)
-{
-	const fn_map = {
-		'render': on_render,
-		'mkdir_done': unlock,
-		'dump_done': on_dump_done,
-		'merge_done': unlock,
-	}
-
-	const [ name, data, ctx ] = event.data
-	const fn = fn_map[name]
-
-	if (fn)
-		fn(ctx.id, data)
-}
 
 function cleanup_listeners()
 {
 	let desc
 
-	while (desc = listeners.pop())
+	while (desc = cleanup.pop())
 		window.removeEventListener(...desc)
 }
 
-function setup_tree(ctx, tree, wgts, delta)
+function setup_tree(tree, config, wgts, delta)
 {
 	tree_canonicalize(tree)
 
 	let tail_drop
 	let head_drop
 
-	if (ctx['trim'] & TRIM_TAIL)
+	if (config['trim'] & TRIM_TAIL)
 		tail_drop = tree_trim_tail(tree)
 
 	if (tail_drop) {
-		ctx.row_end -= tail_drop
-		ctx.col_end = 0
+		config.row_end -= tail_drop
+		config.col_end = 0
 		wgts.splice(-tail_drop)
 	}
 
-	if (ctx['trim'] & TRIM_HEAD && tree.hasChildNodes())
-		head_drop = tree_trim_head(tree, ctx, wgts)
+	if (config['trim'] & TRIM_HEAD && tree.hasChildNodes())
+		head_drop = tree_trim_head(tree, config, wgts)
 
 	if (head_drop) {
-		ctx.row_begin -= head_drop
-		ctx.col_begin = 0
+		config.row_begin -= head_drop
+		config.col_begin = 0
 		wgts.splice(0, head_drop)
 		delta.wd_base -= head_drop
 	}
@@ -140,16 +89,16 @@ function setup_tree(ctx, tree, wgts, delta)
 	if (!tree.hasChildNodes())
 		return
 
-	if (!ctx['no-lineno'])
-		tree_setup_lineno(tree, ctx)
+	if (!config['no-lineno'])
+		tree_setup_lineno(tree, config)
 
 	let head_indent = tree_calc_indent_head(tree)
 	let indent = tree_calc_indent_body(tree)
 
-	if (!ctx['no-pad'])
-		head_indent += tree_pad_head(tree, ctx)
+	if (!config['no-pad'])
+		head_indent += tree_pad_head(tree, config)
 
-	if (ctx['no-indent'])
+	if (config['no-indent'])
 		indent = 0
 	else if (indent > head_indent)
 		indent = head_indent
@@ -176,21 +125,19 @@ function on_scroll(last_y, on_frame)
 	window.requestAnimationFrame(on_frame)
 }
 
-function start_rendering(ctx, cks)
+function enable_rendering(ctx, cks)
 {
 	const last_y = [ 0 ]
-	const render_window_fn = render_window.bind(undefined, cks, ctx)
+	const render_window_fn = render_window.bind(undefined, ctx, cks)
 
 	const on_scroll_fn = on_scroll.bind(undefined, last_y, render_window_fn)
 	const on_scroll_desc = [ 'scroll' , on_scroll_fn ]
 
-	listeners.push(on_scroll_desc)
+	cleanup.push(on_scroll_desc)
 	window.addEventListener(...on_scroll_desc, { passive: true })
-
-	render_window_once(cks, ctx)
 }
 
-function resolve_iso_time()
+function iso_now()
 {
 	const raw_date = new Date()
 	const iso_date = raw_date.toISOString()
@@ -199,60 +146,39 @@ function resolve_iso_time()
 	return name
 }
 
-function dispatch_tasks(ctx, tasks, ck_cnt, prefix, max_wk)
-{
-	let wk_idx
-	let idle
-	const heads = Array.from(tasks)
-
-	tasks.forEach((head, idx, arr) => arr[idx] = head.next)
-
-	for (wk_idx = 0, idle = 0; idle < max_wk; wk_idx++, wk_idx %= max_wk) {
-		if (tasks[wk_idx] === heads[wk_idx]) {
-			idle++
-			continue
-		}
-
-		const [ ck, ck_idx ] = tasks[wk_idx].val
-
-		dump_render(ctx, ck, wk_idx, prefix, ck_idx, ck_cnt)
-		tasks[wk_idx] = tasks[wk_idx].next
-	}
-}
-
 async function on_paste(event)
 {
-	const ctx = __ctx
+	const config = __config
 
-	if (!ctx.ready)
+	if (!config.ready)
 		return
-	ctx.ready = 0
+	config.ready = 0
 
 	cleanup_listeners()
-	utf16_init(ctx)
+	utf16_init(config)
 
-	ctx.style = getComputedStyle(canvas)
+	config.style = getComputedStyle(canvas)
 
 	if (!root.dataset.ready) {
-		style_init_root(root, ctx.style, ctx)
+		style_init_root(root, config.style, config)
 		root.dataset.ready = ''
 	}
 
 	const clipboard = event.clipboardData
-	const [ html, ln_wgts, wbase ] = html_resolve_str(clipboard, ctx)
+	const [ html, ln_wgts, wbase ] = html_resolve_str(clipboard, config)
 
 	const tree = html_parse_str(html)
 	const delta = { wbase, indent: 0 }
 
-	setup_tree(ctx, tree, ln_wgts, delta)
+	setup_tree(tree, config, ln_wgts, delta)
 
 	if (!tree.hasChildNodes()) {
 		warn(webview, 'nothing to be done')
 		return
 	}
 
-	const ck_size = ctx.tune.max_chunk_size
-	let max_wk = ctx.tune.max_worker
+	const ck_size = config.tune.max_chunk_size
+	let max_wk = config.tune.max_worker
 
 	const ck_node = chunk_init(ck_size, tree, delta.wbase, delta.indent)
 	const cks = chunk_parse(ck_node, tree, ck_size)
@@ -266,28 +192,79 @@ async function on_paste(event)
 		max_wk = cks.length
 	}
 
-	const line_h_str = style_resolve(ctx.style, '--39-line-height')
+	const line_h_str = style_resolve(config.style, '--39-line-height')
 	const line_h = parseInt(line_h_str)
 
-	setup_canvas(ctx, ck_node, line_h)
+	setup_canvas(config, ck_node, line_h)
 
-	const render_ctx = render_init_ctx(listeners,
-					   line_h, ck_size, cks.length)
+	const render_ctx = render_init(ck_size, cks.length, line_h, cleanup)
+	const dump_ctx = dump_init(config.id, max_wk)
 
-	start_rendering(render_ctx, cks)
+	const time = iso_now()
+	const prefix = `${config.rt_dir}/${time}`
 
-	const time = resolve_iso_time()
-	const prefix = `${ctx.rt_dir}/${time}`
-	const dump_ctx = dump_init(ctx.id, max_wk)
+	enable_rendering(render_ctx, cks)
+	render_window_once(render_ctx, cks)
 
-	webview.postMessage([ 'mkdir', prefix ])
-	await lock(ctx.id)
+	webview.postMessage([ 'mkdir', config.id, prefix ])
+	await seq_wait(config.id)
 
-	dispatch_tasks(dump_ctx, tasks, cks.length, prefix, max_wk)
-	await lock(ctx.id)
+	dump_dispatch(dump_ctx, tasks, prefix, cks.length, max_wk)
+	await seq_wait(config.id)
 
-	webview.postMessage([ 'merge', prefix ])
-	await lock(ctx.id)
+	const [ png_w, png_most_h, png_last_h ] = dump_map.get(config.id)
+
+	dump_map.delete(config.id)
+	dump_free(config.id)
+
+	webview.postMessage([ 'record', config.id, prefix,
+			      cks.length, png_w, png_most_h, png_last_h ])
+	await seq_wait(config.id)
+
+	webview.postMessage([ 'merge', config.id, prefix ])
+	await seq_wait(config.id)
+}
+
+function on_render(config)
+{
+	__config = config
+	__config.ready = 1
+
+	document.execCommand('paste')
+}
+
+async function on_dump_done(id, ck, prefix, ck_idx, ck_cnt, w, h)
+{
+	let prev = dump_map.get(id)
+
+	if (!prev)
+		prev = [ w, h, h, 0 ]
+
+	if (ck_idx != ck_cnt - 1)
+		prev[1] = h
+	else
+		prev[2] = h
+
+	prev[3]++
+	dump_map.set(id, prev)
+
+	if (prev[3] == ck_cnt)
+		seq_wake(id)
+}
+
+function recv_mesg({ data: [ name, ...data ] })
+{
+	const fn_map = {
+		'render': on_render,
+		'mkdir_done': seq_wake,
+		'dump_done': on_dump_done,
+		'record_done': seq_wake,
+		'merge_done': seq_wake,
+	}
+	const fn = fn_map[name]
+
+	if (fn)
+		fn(...data)
 }
 
 document.addEventListener('paste', on_paste)

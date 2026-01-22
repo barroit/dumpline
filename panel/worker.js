@@ -3,13 +3,13 @@
  * Copyright 2026 Jiamu Sun <barroit@linux.com>
  */
 
-import { png_pick_filter as png_acquire_filter, png_apply_filter } from '../helper.worker/png.js'
+import { png_acquire_filter, png_apply_filter } from '../helper.worker/png.js'
 
 const canvas = new OffscreenCanvas(39, 39)
 
-function init_ck(w, h, extra)
+function init_ck(w, h)
 {
-	const size = h * (1 + w * 4) + extra
+	const size = h * (1 + w * 4)
 	const buf = new Uint8Array(size)
 
 	return buf
@@ -32,7 +32,7 @@ function fill_ck(ck, rgbas, w)
 	}
 }
 
-function on_mesg({ data: [ id, wk_idx, bitmap, ...payload ] })
+function on_mesg({ data: [ id, wk_idx, bitmap, prefix, ck_idx, ck_cnt ] })
 {
 	const d2 = canvas.getContext('2d', { willReadFrequently: true })
 	const w = bitmap.width
@@ -45,16 +45,11 @@ function on_mesg({ data: [ id, wk_idx, bitmap, ...payload ] })
 	bitmap.close()
 
 	const { data: rgbas } = d2.getImageData(0, 0, w, h)
-	const buf = init_ck(w, h, 8)
-
-	const ck = buf.subarray(8)
-	const dv = new DataView(buf.buffer)
-
-	dv.setUint32(0, 0x39393939)
-	dv.setUint32(4, 0x20070831)
+	const ck = init_ck(w, h)
+	const data = [ id, wk_idx, ck.buffer, prefix, ck_idx, ck_cnt, w, h ]
 
 	fill_ck(ck, rgbas, w)
-	self.postMessage([ id, wk_idx, buf.buffer, ...payload ], [ buf.buffer ])
+	self.postMessage(data, [ ck.buffer ])
 }
 
 self.onmessage = on_mesg

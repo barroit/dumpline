@@ -9,80 +9,110 @@ import crypto from 'node:crypto'
 import { mkdirSync } from 'node:fs'
 import { platform } from 'node:process'
 
+import {
+	seq_wait as __seq_wait,
+	seq_wake as __seq_wake,
+} from '../helper/seq.js'
 import { error, warn, info } from '../helper/mesg.js'
-import { vsc_env, vsc_uri } from '../helper/vsc.js'
+import { vsc_env, vsc_exec_cmd, vsc_uri } from '../helper/vsc.js'
 
 import { opt_ensure_valid } from '../helper.patch/option.js'
 import { panel_init, panel_gen_html } from '../helper.patch/panel.js'
-import { png_render, png_save, png_merge } from '../helper.patch/png.js'
+import {
+	png_save_chunk,
+	png_save_size,
+	png_merge_chunk,
+} from '../helper.patch/png.js'
 
 import { rt_dir } from '../entry.js'
+
+const cp_rich_cmd = 'editor.action.clipboardCopyWithSyntaxHighlightingAction'
 
 let panel
 let ext
 
-function patch_ctx(ctx, editor, editor_config)
+const seq_map = new Map()
+const seq_wait = __seq_wait.bind(undefined, seq_map, 39)
+const seq_wake = __seq_wake.bind(undefined, seq_map, 39)
+
+const trim_flags = {
+	'trailing': TRIM_TAIL,
+	'leading': TRIM_HEAD,
+	'both': TRIM_TAIL | TRIM_HEAD,
+}
+
+function fixup_config(config, editor, editor_config)
 {
 	const select = editor.selection
 	const doc = editor.document
 
+	const head_line = doc.lineAt(select.start.line)
+
 	const rand = crypto.randomBytes(16)
 	const nonce = rand.toString('base64')
 
-	ctx.id = nonce
-	ctx.rt_dir = rt_dir
+	config.id = nonce
+	config.rt_dir = rt_dir
 
-	ctx.row_begin = select.start.line
-	ctx.col_begin = select.start.character
+	config.row_begin = select.start.line
+	config.col_begin = select.start.character
 
-	ctx.row_end = select.end.line
-	ctx.col_end = select.end.character
+	config.row_end = select.end.line
+	config.col_end = select.end.character
 
-	const head_line = doc.lineAt(ctx.row_begin)
+	config.head_line = head_line.text
 
-	ctx.head_line = head_line.text
+	config.line_height = editor_config.lineHeight
+	config.line_height_ratio = platform == 'darwin' ? 1.5 : 1.35
 
-	ctx.line_height = editor_config.lineHeight
-	ctx.line_height_ratio = platform == 'darwin' ? 1.5 : 1.35
+	config.tabstop = editor.options.tabSize
+	config.lang = vsc_env.language
 
-	ctx.tabstop = editor.options.tabSize
-	ctx.lang = vsc_env.language
+	config.trim = trim_flags[config.trim]
 }
 
-function transform_ctx(ctx)
+function on_mkdir(id, prefix)
 {
-	const trim_flag = {
-		'trailing': TRIM_TAIL,
-		'leading': TRIM_HEAD,
-		'both': TRIM_TAIL | TRIM_HEAD,
-	}
-
-	ctx.trim = trim_flag[ctx.trim]
+	mkdirSync(prefix)
 }
 
-export async function recv_event([ name, data ])
+async function recv_event([ name, ...data ])
 {
 	const fn_map = {
-		'ready': png_render,
-		'dump':  png_save,
-		'merge': png_merge,
+		'ready': seq_wake,
+
+		'dump':   png_save_chunk,
+		'record': png_save_size,
+		'merge':  png_merge_chunk,
 
 		'error': error,
 		'warn':  warn,
 		'info':  info,
 
-		'mkdir': mkdirSync,
+		'mkdir': on_mkdir,
 		'open':  vsc_env.openExternal,
 	}
-
-	const [ ctx, ext, panel ] = this
 	const fn = fn_map[name]
 
-	await fn(data, ctx, ext, panel)
-	panel.webview.postMessage([ `${name}_done`, data, ctx ])
+	await fn(...data)
+	panel.webview.postMessage([ `${name}_done`, ...data ])
 }
 
-function reset_panel()
+function init_panel(ext)
+{
+	panel = panel_init(ext)
+
+	const webview = panel.webview
+	const prefix = ext.binary.uri
+
+	panel.onDidDispose(nuke_panel, undefined, ext.cleanup)
+	panel.iconPath = vsc_uri.joinPath(prefix, 'image', 'negi.svg')
+
+	webview.html = panel_gen_html(webview, prefix)
+	webview.onDidReceiveMessage(recv_event, undefined, ext.cleanup)
+}
+
+function nuke_panel()
 {
 	panel = undefined
 }
@@ -94,24 +124,16 @@ export async function exec(editor)
 	const editor_config = ext.fetch_config('editor')
 
 	opt_ensure_valid(config)
-	patch_ctx(config, editor, editor_config)
-	transform_ctx(config)
+	fixup_config(config, editor, editor_config)
 
 	if (panel) {
 		panel.reveal(panel.viewColumn, true)
-		recv_event.call([ config, ext, panel ], [ 'ready' ])
-		return
+
+	} else {
+		init_panel(ext)
+		await seq_wait()
 	}
 
-	panel = panel_init(ext)
-
-	const webview = panel.webview
-	const prefix = ext.binary.uri
-
-	webview.html = panel_gen_html(webview, prefix)
-	webview.onDidReceiveMessage(recv_event,
-				    [ config, ext, panel ], ext.cleanup)
-
-	panel.onDidDispose(reset_panel, undefined, ext.cleanup)
-	panel.iconPath = vsc_uri.joinPath(prefix, 'image', 'negi.svg')
+	await vsc_exec_cmd(cp_rich_cmd)
+	panel.webview.postMessage([ 'render', config ])
 }

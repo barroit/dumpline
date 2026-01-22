@@ -21,14 +21,14 @@ export const utf16_class_su = new Uint8Array(cls_su_buf)
 export const utf16_class_name = [ 'N', 'A', 'F', 'H', 'Na', 'W', 'tab' ]
 export const utf16_width =      [  1,   1,   2,   1,   1,    2,    0   ]
 
-export function utf16_init(ctx)
+export function utf16_init(config)
 {
 	const cjk = /^ja|^zh|^ko/
 
-	if (cjk.test(ctx.lang))
+	if (cjk.test(config.lang))
 		utf16_width[1] = 2
 	else
 		utf16_width[1] = 1
 
-	utf16_width[6] = ctx.tabstop
+	utf16_width[6] = config.tabstop
 }

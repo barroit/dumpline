@@ -3,7 +3,7 @@
  * Copyright 2026 Jiamu Sun <barroit@linux.com>
  */
 
-import { list_head, list_add, list_del } from '../helper.panel/list.js'
+import { list_head, list_add, list_del } from '../helper/list.js'
 
 import { webview } from '../panel/index.js'
 
@@ -47,10 +47,12 @@ function unlock_wk(id, wk_idx)
 	list_del(lock, head)
 }
 
-function emit_chunk({ data: [ id, wk_idx, ...payload ] })
+function emit_chunk({ data: wk_res })
 {
-	webview.postMessage([ 'dump', payload ])
+	const [ id, wk_idx, ck, prefix, ck_idx, ck_cnt, w, h ] = wk_res
+	const data = [ id, ck, prefix, ck_idx, ck_cnt, w, h ]
 
+	webview.postMessage([ 'dump', ...data ])
 	unlock_wk(id, wk_idx)
 }
 
@@ -79,7 +81,7 @@ export function dump_free(id)
 	lockmap.delete(id)
 }
 
-export async function dump_render(ctx, ck, wk_idx, prefix, ck_idx, ck_cnt)
+async function dump_render(ctx, ck, wk_idx)
 {
 	await lock_wk(ctx.id, wk_idx)
 
@@ -87,7 +89,6 @@ export async function dump_render(ctx, ck, wk_idx, prefix, ck_idx, ck_cnt)
 	const ck_uri = encodeURIComponent(ck_str)
 	const ck_url = 'data:image/svg+xml;charset=utf-8,' + ck_uri
 
-	const worker = ctx.worker[wk_idx]
 	const img = ctx.img[wk_idx]
 	const canvas = ctx.canvas[wk_idx]
 	const d2 = canvas.getContext('2d')
@@ -100,8 +101,38 @@ export async function dump_render(ctx, ck, wk_idx, prefix, ck_idx, ck_cnt)
 
 	d2.drawImage(img, 0, 0)
 
-	const bitmap = await createImageBitmap(d2.canvas)
-	const data = [ ctx.id, wk_idx, bitmap, prefix, ck_idx, ck_cnt ]
+	return createImageBitmap(d2.canvas)
+}
+
+function emit_img(worker, id, wk_idx, prefix, ck_idx, ck_cnt, bitmap)
+{
+	const data = [ id, wk_idx, bitmap, prefix, ck_idx, ck_cnt ]
 
 	worker.postMessage(data, [ bitmap ])
+}
+
+export function dump_dispatch(ctx, tasks, prefix, ck_cnt, max_wk)
+{
+	let wk_idx
+	let idle
+	const heads = Array.from(tasks)
+
+	tasks.forEach((head, idx, arr) => arr[idx] = head.next)
+
+	for (wk_idx = 0, idle = 0; idle < max_wk; wk_idx++, wk_idx %= max_wk) {
+		if (tasks[wk_idx] === heads[wk_idx]) {
+			idle++
+			continue
+		}
+
+		const [ ck, ck_idx ] = tasks[wk_idx].val
+		const worker = ctx.worker[wk_idx]
+
+		const task = dump_render(ctx, ck, wk_idx)
+		const data = [ worker, ctx.id, wk_idx, prefix, ck_idx, ck_cnt ]
+		const emit_img_fn = emit_img.bind(undefined, ...data)
+
+		task.then(emit_img_fn)
+		tasks[wk_idx] = tasks[wk_idx].next
+	}
 }

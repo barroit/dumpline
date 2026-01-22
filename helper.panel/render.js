@@ -25,7 +25,7 @@ function on_resize(ctx)
 	ctx.wd_size = calc_wd_size(ctx.line_h, ctx.ck_size)
 }
 
-export function render_init_ctx(listeners, line_h, ck_size, nr_ck)
+export function render_init(ck_size, nr_ck, line_h, cleanup)
 {
 	const ctx = {}
 
@@ -39,7 +39,7 @@ export function render_init_ctx(listeners, line_h, ck_size, nr_ck)
 	const on_resize_fn = on_resize.bind(undefined, ctx)
 	const on_resize_desc = [ 'resize', on_resize_fn ]
 
-	listeners.push(on_resize_desc)
+	cleanup.push(on_resize_desc)
 	window.addEventListener(...on_resize_desc, { passive: true })
 
 	return ctx
@@ -93,7 +93,7 @@ function slide_window(cks, prev_begin, begin, prev_end, end, ck_h)
 		del_chunk(cks, end, prev_end)
 }
 
-export function render_window_once(cks, ctx)
+export function render_window_once(ctx, cks)
 {
 	const left = Math.floor(root.scrollTop / ctx.ck_h)
 	const right = left + ctx.wd_size
@@ -108,7 +108,7 @@ export function render_window_once(cks, ctx)
 	ctx.prev_end = end
 }
 
-export function render_window(cks, ctx)
+export function render_window(ctx, cks)
 {
 	const left = Math.floor(root.scrollTop / ctx.ck_h)
 	const right = left + ctx.wd_size

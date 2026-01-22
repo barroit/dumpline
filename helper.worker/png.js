@@ -150,7 +150,7 @@ function test_paeth(rgbas, begin, end, prev_begin)
 	return score
 }
 
-export function png_pick_filter(rgbas, begin, sl_size)
+export function png_acquire_filter(rgbas, begin, sl_size)
 {
 	const tests = [
 		[ 0x00, test_none    ],
