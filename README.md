@@ -12,11 +12,11 @@ Select the region you want to dump:
 
 Execute `dumpline: copy and preview result`:
 
-![step 2](https://raw.githubusercontent.com/barroit/dumpline/refs/heads/master/image/step_1.webp)
+![step 2](https://raw.githubusercontent.com/barroit/dumpline/refs/heads/master/image/step_2.webp)
 
 You get the result:
 
-![step 3](https://raw.githubusercontent.com/barroit/dumpline/refs/heads/master/image/step_1.webp)
+![step 3](https://raw.githubusercontent.com/barroit/dumpline/refs/heads/master/image/step_3.webp)
 
 There are three buttons at the top right. First one is for copying, second one
 opens the directory where image lives, last one opens image itself.
