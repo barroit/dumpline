@@ -19,6 +19,7 @@ const cmds = {
 
 const tmp_dir = tmpdir()
 export const rt_dir = mkdtempSync(`${tmp_dir}/dumpline-`)
+export const bar_map = new Map()
 
 export async function activate(ctx)
 {

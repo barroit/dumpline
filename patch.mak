@@ -8,17 +8,12 @@ tailwindcss += --minify
 panel-prefix  := $(prefix)/panel
 module-prefix := node_modules
 
-html-in   := $(wildcard panel/*.html)
-html-m4-y := $(call add_syth,$(html-in))
-html-y    := $(panel-prefix)/index.html
+html-in := $(wildcard panel/*.html)
+html-y  := $(panel-prefix)/index.html
 
 prem4 := $(html-y)
 
-$(html-m4-y): $(syth-prefix)/%: %
-	mkdir -p $(@D)
-	$(m4) $< >$@
-
-$(html-y): $(prefix)/%: $(html-m4-y)
+$(html-y): $(prefix)/%: $(html-in)
 	mkdir -p $(@D)
 	$(m4) $* >$@
 

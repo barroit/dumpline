@@ -17,6 +17,8 @@ import { createDeflate } from 'node:zlib'
 
 import crc32 from '../helper/crc32.js'
 
+import { bar_map } from '../entry.js'
+
 export function png_save_chunk(id, ck, prefix, ck_idx)
 {
 	const buf = Buffer.from(ck)
@@ -123,6 +125,7 @@ function write_idat(stream, ck)
 
 export async function png_merge_chunk(id, prefix)
 {
+	const bar = bar_map.get(id)
 	const stream = createWriteStream(`${prefix}/dump.png`)
 	const [ w, h ] = resolve_size(`${prefix}/size`)
 
@@ -144,6 +147,8 @@ export async function png_merge_chunk(id, prefix)
 			deflator.end()
 			break
 		}
+
+		bar.report({ message: `merging chunk ${idx}` })
 
 		const ck_task = new Promise(r => ck_stream.on('end', r))
 

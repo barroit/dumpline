@@ -4,9 +4,10 @@
 
 !LICENSES/**
 !image/**
-!README
+!README.md
 
 !build/entry.js
 !build/panel/index.css
 !build/panel/index.js
+!build/panel/worker.js
 !build/panel/utf16_class*

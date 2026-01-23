@@ -47,6 +47,6 @@ export function panel_gen_html(webview, prefix_in)
 	const nonce = rand.toString('base64')
 
 	return `
-include(__build__/panel/index.html)dnl
+include(__build__/../panel/index.html)dnl
 	`
 }

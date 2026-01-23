@@ -2,13 +2,13 @@ dnl SPDX-License-Identifier: GPL-3.0-or-later
 dnl
 {
    "command": "dumpline.multiple",
-   "title": "preview result",
+   "title": "copy and preview result",
    "category": "dumpline",
    "enablement": "editorHasSelection && !editorHasMultipleSelections"
 },
 {
    "command": "dumpline.single",
-   "title": "preview result (for single line)",
+   "title": "copy and preview result (for single line)",
    "category": "dumpline",
    "enablement": "editorHasSelection && !editorHasMultipleSelections"
 }

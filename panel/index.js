@@ -61,6 +61,20 @@ function cleanup_listeners()
 		window.removeEventListener(...desc)
 }
 
+function disable_btns()
+{
+	btn['copy_file'].disabled = true
+	btn['open_dir'].disabled = true
+	btn['open_file'].disabled = true
+}
+
+function enable_btns()
+{
+	btn['copy_file'].disabled = false
+	btn['open_dir'].disabled = false
+	btn['open_file'].disabled = false
+}
+
 function setup_tree(tree, config, wgts, delta)
 {
 	tree_canonicalize(tree)
@@ -155,6 +169,7 @@ async function on_paste(event)
 		return
 	config.ready = 0
 
+	disable_btns()
 	cleanup_listeners()
 
 	if (CHILD_OF(canvas))
@@ -212,6 +227,9 @@ async function on_paste(event)
 	enable_rendering(render_ctx, cks)
 	render_window_once(render_ctx, cks)
 
+	webview.postMessage([ 'showst', config.id, time ])
+	await seq_wait(config.id)
+
 	webview.postMessage([ 'mkdir', config.id, prefix ])
 	await seq_wait(config.id)
 
@@ -230,9 +248,13 @@ async function on_paste(event)
 	webview.postMessage([ 'merge', config.id, prefix ])
 	await seq_wait(config.id)
 
+	webview.postMessage([ 'dropst', config.id ])
+
 	result.id = config.id
 	result.dir = prefix
 	result.name = `${prefix}/dump.png`
+
+	enable_btns()
 }
 
 function on_render(config)
@@ -260,6 +282,8 @@ async function on_dump_done(id, ck, prefix, ck_idx, ck_cnt, w, h)
 
 	prev[3]++
 	dump_map.set(id, prev)
+
+	webview.postMessage([ 'nextst', id, ck_idx, prev[3], ck_cnt ])
 
 	if (prev[3] == ck_cnt)
 		seq_wake(id)
@@ -293,6 +317,8 @@ function recv_mesg({ data: [ name, ...data ] })
 
 		'read_done': on_read_done,
 		'mkdir_done': seq_wake,
+
+		'showst_done': seq_wake,
 	}
 	const fn = fn_map[name]
 
@@ -332,6 +358,10 @@ const on_copy_file = on_btn_click.bind(undefined, copy_file)
 const on_open_dir = on_btn_click.bind(undefined, open_dir)
 const on_open_file = on_btn_click.bind(undefined, open_file)
 
+btn['copy_file'].disabled = true
+btn['open_dir'].disabled = true
+btn['open_file'].disabled = true
+
 btn['copy_file'].addEventListener('click', on_copy_file)
 btn['open_dir'].addEventListener('click', on_open_dir)
 btn['open_file'].addEventListener('click', on_open_file)
@@ -339,4 +369,4 @@ btn['open_file'].addEventListener('click', on_open_file)
 document.addEventListener('paste', on_paste)
 window.addEventListener('message', recv_mesg)
 
-webview.postMessage([ 'ready' ])
+webview.postMessage([ 'ready', 39 ])
