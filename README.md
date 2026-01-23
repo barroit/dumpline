@@ -8,15 +8,15 @@ How to use
 
 Select the region you want to dump:
 
-![step 1](https://github.com/barroit/dumpline/blob/master/image/step_1.webp)
+![step 1](https://raw.githubusercontent.com/barroit/dumpline/refs/heads/master/image/step_1.webp)
 
 Execute `dumpline: copy and preview result`:
 
-![step 2](https://github.com/barroit/dumpline/blob/master/image/step_2.webp)
+![step 2](https://raw.githubusercontent.com/barroit/dumpline/refs/heads/master/image/step_1.webp)
 
 You get the result:
 
-![step 3](https://github.com/barroit/dumpline/blob/master/image/step_3.webp)
+![step 3](https://raw.githubusercontent.com/barroit/dumpline/refs/heads/master/image/step_1.webp)
 
 There are three buttons at the top right. First one is for copying, second one
 opens the directory where image lives, last one opens image itself.
